@@ -63,7 +63,7 @@ function LoginForm() {
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 px-4 py-3 text-[13px] font-medium text-danger">{error}</p>}
-      {info && <p className="rounded-xl bg-accent/10 px-4 py-3 text-[13px] font-medium text-accent-ink" dangerouslySetInnerHTML={{ __html: info }} />}
+      {info && <p className="rounded-xl bg-brand/10 px-4 py-3 text-[13px] font-medium text-brand" dangerouslySetInnerHTML={{ __html: info }} />}
 
       <button type="submit" disabled={busy} className="btn-primary w-full">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} Iniciar sessão

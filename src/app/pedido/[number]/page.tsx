@@ -128,7 +128,7 @@ export default async function OrderDetailPage({ params }: { params: { number: st
           )}
 
           {order.paymentMethod === 'CASH' && order.paymentStatus === 'PENDING' && (
-            <p className="mt-4 rounded-xl bg-accent/10 px-3.5 py-3 text-[13px] font-medium text-accent-ink">Pague em dinheiro {order.deliveryMethod === 'DELIVERY' ? 'ao estafeta' : 'no balcão'} — tenha o valor pronto se possível.</p>
+            <p className="mt-4 rounded-xl bg-brand/10 px-3.5 py-3 text-[13px] font-medium text-brand">Pague em dinheiro {order.deliveryMethod === 'DELIVERY' ? 'ao estafeta' : 'no balcão'} — tenha o valor pronto se possível.</p>
           )}
         </section>
       </div>

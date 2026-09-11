@@ -166,7 +166,7 @@ export function CartClient() {
             </dd>
           </div>
           {remainingForFree > 0 && (
-            <p className="rounded-lg bg-accent/10 px-3 py-2 text-xs font-medium text-accent-ink">
+            <p className="rounded-lg bg-brand/10 px-3 py-2 text-xs font-medium text-brand">
               Faltam {eur(remainingForFree)} para entrega gratuita.
             </p>
           )}

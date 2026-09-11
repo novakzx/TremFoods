@@ -35,7 +35,7 @@ function VerifyForm() {
   if (state === 'loading') {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-muted">
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <Loader2 className="h-6 w-6 animate-spin text-brand" />
         <p className="text-sm">A confirmar o e-mail…</p>
       </div>
     );

@@ -34,7 +34,7 @@ export default async function AccountPage() {
       <h1 className="font-display text-3xl font-extrabold tracking-tight">A minha conta</h1>
 
       <section className="card mt-8 flex flex-wrap items-center gap-4 p-6">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 font-display text-xl font-extrabold text-accent-ink">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 font-display text-xl font-extrabold text-brand">
           {user.name.trim().charAt(0).toUpperCase() || 'U'}
         </span>
         <div className="min-w-0 flex-1">

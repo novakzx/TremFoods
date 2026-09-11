@@ -77,14 +77,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
           <dl className="mt-8 grid gap-3 border-t border-line pt-6 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-accent/15 text-accent-ink"><Clock className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} /></span>
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-brand/10 text-brand"><Clock className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} /></span>
               <div>
                 <dt className="font-semibold">Levantamento</dt>
                 <dd className="text-muted">pronto em {PICKUP_MINUTES} minutos</dd>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-accent/15 text-accent-ink"><Bike className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} /></span>
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-brand/10 text-brand"><Bike className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} /></span>
               <div>
                 <dt className="font-semibold">Entrega ao domicílio</dt>
                 <dd className="text-muted">até {DELIVERY_MINUTES} minutos · {eur(250)} (grátis +{eur(2500)})</dd>

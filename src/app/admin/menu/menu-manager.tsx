@@ -194,7 +194,7 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
             <ul className="mt-3 max-h-[520px] divide-y divide-line overflow-y-auto">
               {products.map((p) => (
                 <li key={p.id} className="flex items-center gap-2 py-2.5">
-                  <button onClick={() => openProduct(p)} className={`min-w-0 flex-1 text-left ${draft?.id === p.id ? 'text-accent-ink' : ''}`}>
+                  <button onClick={() => openProduct(p)} className={`min-w-0 flex-1 text-left ${draft?.id === p.id ? 'text-brand' : ''}`}>
                     <span className={`block truncate text-sm font-medium ${p.available ? '' : 'text-muted line-through'}`}>{p.name}</span>
                     <span className="text-xs text-muted">{p.category} · {eur(p.priceCents)}{p.hasOptions ? ' · com adicionais' : ''}</span>
                   </button>

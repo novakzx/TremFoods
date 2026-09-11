@@ -90,11 +90,11 @@ export function ProductPurchase({ productId, basePriceCents, groups }: {
                   aria-pressed={isOn}
                   disabled={!o.available || (!isOn && g.multiple && !!g.maxSelect && selected[g.id].size >= g.maxSelect)}
                   className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors ${
-                    isOn ? 'border-ink bg-surface ring-2 ring-accent/40' : 'border-line bg-surface hover:border-ink/30'
+                    isOn ? 'border-brand bg-surface ring-2 ring-brand/30' : 'border-line bg-surface hover:border-ink/30'
                   } disabled:opacity-50`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className={`flex h-4.5 w-4.5 flex-none items-center justify-center rounded-md border ${isOn ? 'border-accent bg-accent text-accent-ink' : 'border-ink/25'}`} style={{ height: 18, width: 18 }}>
+                    <span className={`flex h-4.5 w-4.5 flex-none items-center justify-center rounded-md border ${isOn ? 'border-brand bg-brand text-ink' : 'border-ink/25'}`} style={{ height: 18, width: 18 }}>
                       {isOn && <Check className="h-3 w-3" />}
                     </span>
                     <span className="font-medium">{o.name}</span>

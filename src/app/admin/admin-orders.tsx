@@ -65,7 +65,7 @@ export function AdminOrders({ initial }: { initial: OrderView[] }) {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`chip border px-3.5 py-1.5 transition-colors ${filter === s ? 'border-ink bg-ink text-surface' : 'border-line bg-surface text-ink/70 hover:border-ink/30'}`}
+            className={`chip border px-3.5 py-1.5 transition-colors ${filter === s ? 'border-transparent bg-brand text-ink' : 'border-line bg-surface text-ink/70 hover:border-brand/40 hover:text-brand'}`}
           >
             {s === 'all' ? `Todos (${orders.length})` : `${LIFECYCLE[s]?.label ?? s} (${orders.filter((o) => o.status === s).length})`}
           </button>
@@ -85,7 +85,7 @@ export function AdminOrders({ initial }: { initial: OrderView[] }) {
                 <p className="font-display text-base font-bold">{o.number}</p>
                 <p className="text-[13px] text-muted">{eur(o.totalCents)} · {formatDateLabel(o.createdAt)}</p>
               </div>
-              <span className={`chip text-sm font-bold ${o.status === 'DELIVERED' ? 'bg-success/10 text-success' : o.status === 'CANCELLED' ? 'bg-danger/10 text-danger' : 'bg-accent/15 text-accent-ink'}`}>
+              <span className={`chip text-sm font-bold ${o.status === 'DELIVERED' ? 'bg-success/10 text-success' : o.status === 'CANCELLED' ? 'bg-danger/10 text-danger' : 'bg-brand/10 text-brand'}`}>
                 {meta?.label ?? o.status}
               </span>
             </header>

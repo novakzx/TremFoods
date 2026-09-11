@@ -205,9 +205,9 @@ export function CheckoutClient() {
                   key={o.id}
                   onClick={() => setDeliveryMethod(o.id)}
                   aria-pressed={deliveryMethod === o.id}
-                  className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${deliveryMethod === o.id ? 'border-ink bg-surface ring-2 ring-accent/40' : 'border-line bg-surface hover:border-ink/30'}`}
+                  className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${deliveryMethod === o.id ? 'border-brand bg-surface ring-2 ring-brand/30' : 'border-line bg-surface hover:border-ink/30'}`}
                 >
-                  <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-xl ${deliveryMethod === o.id ? 'bg-accent text-accent-ink' : 'bg-ink/5 text-ink/60'}`}>
+                  <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-xl ${deliveryMethod === o.id ? 'bg-brand text-ink' : 'bg-ink/5 text-ink/60'}`}>
                     <o.icon className="h-5 w-5" />
                   </span>
                   <span>
@@ -273,9 +273,9 @@ export function CheckoutClient() {
                   key={p.id}
                   onClick={() => setPaymentMethod(p.id)}
                   aria-pressed={paymentMethod === p.id}
-                  className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${paymentMethod === p.id ? 'border-ink bg-surface ring-2 ring-accent/40' : 'border-line bg-surface hover:border-ink/30'}`}
+                  className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${paymentMethod === p.id ? 'border-brand bg-surface ring-2 ring-brand/30' : 'border-line bg-surface hover:border-ink/30'}`}
                 >
-                  <span className={`mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg ${paymentMethod === p.id ? 'bg-accent text-accent-ink' : 'bg-ink/5 text-ink/60'}`}>
+                  <span className={`mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg ${paymentMethod === p.id ? 'bg-brand text-ink' : 'bg-ink/5 text-ink/60'}`}>
                     <p.icon className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} />
                   </span>
                   <span>

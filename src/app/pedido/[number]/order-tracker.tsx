@@ -56,7 +56,7 @@ export function OrderTracker({ number, initialStatus, deliveryMethod }: { number
       {done ? (
         <><CheckCircle2 className="h-4 w-4 text-success" /> Atualização automática desligada</>
       ) : (
-        <><Loader2 className={`h-4 w-4 text-accent ${spin ? 'animate-spin' : ''}`} /> Atualiza a cada 20 segundos</>
+        <><Loader2 className={`h-4 w-4 text-brand ${spin ? 'animate-spin' : ''}`} /> Atualiza a cada 20 segundos</>
       )}
       {!done && perm === 'default' && 'Notification' in window && (
         <button
