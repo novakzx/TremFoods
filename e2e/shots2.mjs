@@ -1,0 +1,25 @@
+import { chromium } from 'playwright';
+const BASE = 'http://localhost:3000';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 1050 }, deviceScaleFactor: 2 });
+const p = await ctx.newPage();
+await p.goto(BASE + '/login?next=/cardapio/x-salada-da-casa', { waitUntil: 'networkidle' });
+await p.getByLabel('E-mail').fill('admin@tremfood.pt');
+await p.getByLabel('Palavra-passe').fill('TrocarAdmin2026');
+await p.getByRole('button', { name: 'Iniciar sessão' }).click();
+await p.waitForURL('**/cardapio/x-salada-da-casa', { timeout: 15000 });
+await p.getByRole('button', { name: /Adicionar ao carrinho/ }).click();
+await p.waitForTimeout(500);
+await p.goto(BASE + '/cardapio/truffle-noir', { waitUntil: 'networkidle' });
+await p.getByRole('button', { name: /Adicionar ao carrinho/ }).click();
+await p.waitForTimeout(500);
+await p.goto(BASE + '/checkout', { waitUntil: 'networkidle' });
+await p.waitForTimeout(500);
+await p.screenshot({ path: '/home/user/trem-food/e2e/shots/checkout-preenchido.png' });
+console.log('checkout-preenchido ok');
+// timeline do pedido
+await p.goto(BASE + '/pedido/TF-000002', { waitUntil: 'networkidle' });
+await p.waitForTimeout(500);
+await p.screenshot({ path: '/home/user/trem-food/e2e/shots/pedido-timeline.png', fullPage: true });
+console.log('pedido-timeline ok');
+await browser.close();

@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const BASE = 'http://localhost:3000';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const p = await ctx.newPage();
+await p.goto(BASE + '/rastreamento', { waitUntil: 'networkidle' });
+await p.getByLabel('Número do pedido').fill('TF-000002');
+await p.getByLabel('Últimos 4 dígitos').fill('5678');
+await p.getByRole('button', { name: 'Acompanhar' }).click();
+await p.waitForSelector('text=Em preparação', { timeout: 15000 });
+await p.waitForTimeout(300);
+await p.screenshot({ path: '/home/user/trem-food/e2e/shots/tracking-mobile.png', fullPage: true });
+console.log('tracking ok');
+await browser.close();

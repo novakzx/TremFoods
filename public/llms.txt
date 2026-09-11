@@ -1,0 +1,56 @@
+# Trem Food
+
+Hamburgueria em Almada com menu brasileiro e português: x-salada, picanha com ovo
+frito, torresmo, kibe e petiscos para partilhar. Aberto todos os dias, das 06h30
+às 00h00. Comer no local, recolha móvel sem sair do carro ou entrega sem contacto.
+
+- Site: https://tremfood.pt
+- Morada: Av. António José Gomes 6, 2805-085 Almada
+- Contacto: ola@tremfood.pt · 964 994 787 (WhatsApp: https://wa.me/351964994787)
+- Horário: Segunda a Domingo, 06h30–00h00
+- Preço médio: 10–15 € por pessoa
+
+## Cardápio
+
+As páginas dos produtos estão em https://tremfood.pt/cardapio/[slug].
+
+Hambúrgueres:
+- X-Salada da Casa — 12,90 €
+- X-Frango da Casa — 9,90 €
+- Barbecue Bacon — 14,90 €
+- Double Smash Clássico — 10,90 €
+- Dry Aged 45 — 12,90 €
+- Truffle Noir — 16,90 €
+- Verde Vanguard — 9,90 € (vegetariano)
+- Quinoa Fire — 8,90 € (vegetariano, picante)
+- Funghi Portobello — 9,50 € (vegetariano)
+
+Petiscos:
+- Torresmo Crocante — 5,90 €
+- Kibe Crocante — 4,50 €
+
+Pratos:
+- Picanha com Ovo Frito — 12,90 €
+
+Sobremesas:
+- Taça de Chocolate e Creme — 4,50 €
+
+Acompanhamentos:
+- Batatas Rústicas — 4,90 €
+- Onion Rings — 4,50 €
+
+Bebidas:
+- Milkshake de Caramelo — 6,90 €
+- Cola Artesanal — 3,90 €
+
+## Perguntas frequentes
+
+- Entrega: sem contacto, taxa de 2,50 €, gratuita a partir de 25,00 €. ETA 40 minutos.
+- Levantamento: no balcão ou recolha móvel, sem taxa, pronto em 20 minutos.
+- Pagamento: dinheiro, cartão, MB WAY e referência Multibanco (Stripe).
+- Acompanhamento: https://tremfood.pt/rastreamento com número de pedido + últimos 4 dígitos do telefone.
+
+## Técnico
+
+Aplicação Next.js (App Router) com PostgreSQL/Prisma, Redis para rate limiting
+e Stripe para pagamentos. Código-fonte privado. A API está em https://tremfood.pt/api.

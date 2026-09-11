@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+await ctx.addInitScript(() => localStorage.setItem('tf-cookie-consent', 'all'));
+const page = await ctx.newPage();
+await page.goto(`${BASE}/login?next=/admin/dashboard`, { waitUntil: 'domcontentloaded' });
+await page.getByLabel('E-mail').fill('admin@tremfood.pt');
+await page.getByLabel('Palavra-passe').fill('TrocarAdmin2026');
+await page.getByRole('button', { name: 'Iniciar sessão' }).click();
+await page.waitForURL('**/admin/dashboard', { timeout: 15000 });
+await page.waitForSelector('text=Pedidos de', { timeout: 10000 });
+await page.screenshot({ path: 'e2e/shots/dashboard-desktop.png', fullPage: true });
+console.log('shot ok');
+await browser.close();
