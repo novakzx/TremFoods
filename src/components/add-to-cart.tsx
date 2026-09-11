@@ -30,7 +30,7 @@ export function AddToCart({ productId, variant = 'full' }: { productId: string; 
         onClick={add}
         disabled={busy}
         aria-label="Adicionar ao carrinho"
-        className="rounded-full bg-gradient-to-br from-brand to-accent p-2.5 text-ink shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-60 disabled:hover:scale-100"
+        className="rounded-full bg-brand p-2.5 text-ink transition-colors hover:bg-brand-deep disabled:opacity-60"
       >
         {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
       </button>

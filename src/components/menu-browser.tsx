@@ -84,7 +84,7 @@ export function MenuBrowser({ products }: { products: ProductView[] }) {
         <div className={`${open ? 'mt-3 flex flex-wrap gap-2' : 'hidden gap-2'} lg:mt-3 lg:flex lg:flex-wrap`}>
           <button
             onClick={() => { setCat('all'); setOpen(false); }}
-            className={`chip border px-3.5 py-1.5 transition-all ${cat === 'all' ? 'border-transparent bg-gradient-to-r from-brand to-accent text-ink shadow-sm' : 'border-line bg-surface text-ink/70 hover:border-brand/40 hover:text-brand'}`}
+            className={`chip border px-3.5 py-1.5 transition-colors ${cat === 'all' ? 'border-transparent bg-brand text-ink' : 'border-line bg-surface text-ink/70 hover:border-brand/40 hover:text-brand'}`}
           >
             Todos
           </button>
@@ -92,7 +92,7 @@ export function MenuBrowser({ products }: { products: ProductView[] }) {
             <button
               key={c.id}
               onClick={() => { setCat(c.id); setOpen(false); }}
-              className={`chip border px-3.5 py-1.5 transition-all ${cat === c.id ? 'border-transparent bg-gradient-to-r from-brand to-accent text-ink shadow-sm' : 'border-line bg-surface text-ink/70 hover:border-brand/40 hover:text-brand'}`}
+              className={`chip border px-3.5 py-1.5 transition-colors ${cat === c.id ? 'border-transparent bg-brand text-ink' : 'border-line bg-surface text-ink/70 hover:border-brand/40 hover:text-brand'}`}
             >
               {c.name}
             </button>
@@ -143,7 +143,7 @@ function MenuCard({ p }: { p: ProductView }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]" />
         <div className="absolute left-3 top-3 flex gap-1.5">
-          {p.isNew && <span className="chip bg-gradient-to-r from-brand to-accent text-ink shadow-sm">Novo</span>}
+          {p.isNew && <span className="chip bg-ink/90 text-white">Novo</span>}
           {p.isVegetarian && <span className="chip bg-surface/95 text-success"><Leaf className="h-3 w-3" /> Vegetariano</span>}
           {p.isSpicy && <span className="chip bg-surface/95 text-danger"><Flame className="h-3 w-3" /> Picante</span>}
         </div>
@@ -161,7 +161,7 @@ function MenuCard({ p }: { p: ProductView }) {
         <div className="mt-4 flex items-center justify-between gap-2">
           <span className="text-[15px] font-bold text-brand">{eur(p.priceCents)}</span>
           {p.hasOptions && p.available ? (
-            <Link href={`/cardapio/${p.slug}`} aria-label="Ver opções" className="rounded-full bg-gradient-to-br from-brand to-accent p-2.5 text-ink shadow-sm transition-transform hover:scale-105 active:scale-95">
+            <Link href={`/cardapio/${p.slug}`} aria-label="Ver opções" className="rounded-full bg-brand p-2.5 text-ink transition-colors hover:bg-brand-deep">
               <Plus className="h-4 w-4" />
             </Link>
           ) : p.available ? (

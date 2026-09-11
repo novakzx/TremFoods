@@ -50,11 +50,7 @@
 }
 
 html { scroll-behavior: smooth; }
-body {
-  @apply text-ink font-sans antialiased;
-  background: radial-gradient(1200px 520px at 85% -10%, rgba(255,106,0,0.09), transparent 60%), #FFF8F1;
-  text-rendering: optimizeLegibility;
-}
+body { @apply bg-paper text-ink font-sans antialiased; text-rendering: optimizeLegibility; }
 
 ::selection { background: #FFD794; color: #231506; }
 
@@ -68,11 +64,10 @@ body {
          disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none select-none;
 }
 .btn-primary {
-  @apply btn text-ink shadow-glow hover:-translate-y-0.5 hover:shadow-float active:translate-y-0 active:shadow-glow;
-  background-image: linear-gradient(135deg, #FFC658, #FF6A00);
+  @apply btn bg-brand text-ink shadow-card hover:bg-brand-deep hover:shadow-float active:shadow-card;
 }
 .btn-secondary {
-  @apply btn border border-line bg-surface text-ink hover:-translate-y-0.5 hover:border-brand/40 hover:text-brand hover:shadow-card active:translate-y-0;
+  @apply btn border border-line bg-surface text-ink hover:border-brand/40 hover:text-brand hover:shadow-card;
 }
 .btn-ghost { @apply btn text-ink/70 hover:bg-ink/5 hover:text-ink; }
 
@@ -85,17 +80,6 @@ body {
 }
 .label { @apply mb-1.5 block text-[13px] font-medium text-ink/80; }
 .chip { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
-
-/* destaque tipográfico: gradiente quente para uma palavra-chave do título */
-.text-gradient-brand {
-  background-image: linear-gradient(100deg, #FF6A00, #FFB020);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* manchas de luz decorativas, usadas atrás do hero */
-.glow-blob { @apply pointer-events-none absolute rounded-full opacity-50 blur-3xl; }
 
 /* animação sutil de entrada (única do site, 200ms) */
 .fade-up { animation: fadeUp 0.25s ease-out both; }

@@ -52,16 +52,14 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero — layout limpo, tipo Wolt: texto à esquerda, prato à direita */}
-      <section className="relative overflow-hidden border-b border-line bg-surface">
-        <div className="glow-blob -left-24 -top-32 h-80 w-80 bg-brand/15" />
-        <div className="glow-blob -right-16 top-10 h-72 w-72 bg-accent/25" />
-        <div className="container-app relative grid items-center gap-8 py-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
+      <section className="border-b border-line bg-surface">
+        <div className="container-app grid items-center gap-8 py-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
           <div>
             <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-[13px] font-semibold text-success">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" /> Aberto todos os dias · 06h30–00h00
             </p>
             <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-              <span className="text-gradient-brand">X-salada, picanha</span> e petiscos à moda da casa.
+              <span className="text-brand">X-salada, picanha</span> e petiscos à moda da casa.
             </h1>
             <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted">
               Menu brasileiro e português: x-salada com carne 160&nbsp;g, picanha com ovo frito,
@@ -157,7 +155,7 @@ export default async function HomePage() {
             { icon: Bike, t: '3. Acompanhe em tempo real', d: 'Recebido, em preparação, saiu para entrega — siga cada passo no site.' },
           ].map((s) => (
             <div key={s.t} className="card card-hover flex gap-4 p-5">
-              <span className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-accent text-ink shadow-sm">
+              <span className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-brand/10 text-brand">
                 <s.icon className="h-5 w-5" />
               </span>
               <div>

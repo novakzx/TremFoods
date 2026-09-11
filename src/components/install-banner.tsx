@@ -62,7 +62,7 @@ export function InstallBanner() {
   return (
     <div className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-md rounded-2xl border border-line bg-surface p-4 shadow-xl shadow-ink/10">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-accent text-ink shadow-sm">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
           <Download className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">

@@ -44,9 +44,7 @@ export default async function CardapioPage() {
   return (
     <div className="container-app py-8 sm:py-10">
       <header className="mb-6">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">
-          <span className="text-gradient-brand">Cardápio</span>
-        </h1>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">Cardápio</h1>
         <p className="mt-1.5 max-w-xl text-sm text-muted">
           Servido todos os dias, das 06h30 às 00h00. Encomendas fora deste horário são preparadas na abertura seguinte.
         </p>

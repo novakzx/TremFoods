@@ -43,14 +43,14 @@ export function StatusTimeline({
                 aria-hidden
                 className={`absolute left-[9px] top-[17px] h-full w-px bg-line sm:left-0 sm:top-[18px] sm:h-px sm:w-full ${
                   compact ? 'top-[11px]' : ''
-                } ${i <= current ? 'bg-gradient-to-r from-brand to-accent' : ''}`}
+                } ${i <= current ? 'bg-brand' : ''}`}
                 style={compact ? { left: 22, top: 11, width: 'calc(100% - 44px)' } : undefined}
               />
             )}
             <div className="relative flex items-center gap-3 py-1 sm:block sm:pr-4">
               <span
                 className={`z-10 flex h-9 w-9 flex-none items-center justify-center rounded-full border-2 transition-colors ${
-                  done ? 'border-transparent bg-gradient-to-br from-brand to-accent text-ink shadow-sm' : 'border-line bg-surface text-muted'
+                  done ? 'border-transparent bg-brand text-ink' : 'border-line bg-surface text-muted'
                 }`}
               >
                 {done ? <Check className="h-4 w-4" strokeWidth={3} /> : <Clock className="h-4 w-4" />}

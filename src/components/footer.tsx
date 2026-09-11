@@ -14,14 +14,12 @@ const COMPANY = {
 
 export function Footer() {
   return (
-    <footer className="relative mt-20 overflow-hidden bg-[#1A1006] text-[#C7BCA9]">
-      <div className="glow-blob -top-24 right-0 h-72 w-72 bg-brand/25" />
-      <div className="glow-blob -bottom-24 left-0 h-64 w-64 bg-accent/15" />
-      <div className="h-[3px] w-full bg-gradient-to-r from-brand via-accent to-brand" />
-      <div className="container-app relative grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-20 bg-[#1A1006] text-[#C7BCA9]">
+      <div className="h-[3px] w-full bg-brand" />
+      <div className="container-app grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="rounded-full bg-gradient-to-br from-brand to-accent p-[2px]">
+            <span className="rounded-full bg-brand p-[2px]">
               <img src="/img/brand/logo.png" alt="" className="h-9 w-9 rounded-full border-2 border-[#1A1006] object-cover" />
             </span>
             <div className="leading-tight">
@@ -77,7 +75,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="relative border-t border-white/10">
+      <div className="border-t border-white/10">
         <div className="container-app flex flex-col items-center justify-between gap-3 py-6 text-[12px] text-white/40 sm:flex-row">
           <p>© {new Date().getFullYear()} {COMPANY.name} · Todos os direitos reservados.</p>
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2" aria-label="Legal">

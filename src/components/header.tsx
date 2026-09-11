@@ -54,7 +54,7 @@ export function Header({ user, cartCount }: { user: { name: string; email: strin
     <header className="sticky top-0 z-50 border-b border-line/80 bg-surface/85 shadow-sm backdrop-blur-md">
       <div className="container-app flex h-16 items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Trem Food — início">
-          <span className="rounded-full bg-gradient-to-br from-brand to-accent p-[2px]">
+          <span className="rounded-full bg-brand p-[2px]">
             <img src="/img/brand/logo.png" alt="" className="h-8 w-8 rounded-full border-2 border-surface object-cover" />
           </span>
           <span className="leading-tight">
@@ -83,16 +83,20 @@ export function Header({ user, cartCount }: { user: { name: string; email: strin
               <Download className="h-3.5 w-3.5" /> Instalar
             </button>
           )}
-          <Link href="/cardapio" className="rounded-full p-2.5 text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink" aria-label="Pesquisar">
+          <Link href="/cardapio" className="flex items-center gap-2 rounded-full px-2.5 py-2.5 text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink" aria-label="Pesquisar no cardápio">
             <Search className="h-5 w-5" />
+            <span className="hidden text-sm font-medium xl:inline">Pesquisar</span>
           </Link>
-          <Link href="/carrinho" className="relative rounded-full p-2.5 text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink" aria-label="Carrinho">
-            <ShoppingBag className="h-5 w-5" />
-            {count > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-gradient-to-br from-brand to-accent px-1 text-[11px] font-bold text-ink shadow-sm" style={{ height: 18 }}>
-                {count > 99 ? '99' : count}
-              </span>
-            )}
+          <Link href="/carrinho" className="relative flex items-center gap-2 rounded-full px-2.5 py-2.5 text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink" aria-label="Carrinho">
+            <span className="relative">
+              <ShoppingBag className="h-5 w-5" />
+              {count > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-brand px-1 text-[11px] font-bold text-ink" style={{ height: 18 }}>
+                  {count > 99 ? '99' : count}
+                </span>
+              )}
+            </span>
+            <span className="hidden text-sm font-medium xl:inline">Carrinho</span>
           </Link>
           {user ? (
             <Link href="/conta" className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium text-ink/80 hover:bg-ink/5" aria-label="A minha conta">

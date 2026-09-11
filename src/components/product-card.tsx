@@ -17,7 +17,7 @@ export function ProductCard({ product, hasOptions = false }: { product: Product;
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
         />
         <div className="absolute left-3 top-3 flex gap-1.5">
-          {product.isNew && <span className="chip bg-gradient-to-r from-brand to-accent text-ink shadow-sm">Novo</span>}
+          {product.isNew && <span className="chip bg-ink/90 text-white">Novo</span>}
           {product.isVegetarian && (
             <span className="chip bg-surface/95 text-success"><Leaf className="h-3 w-3" /> Vegetariano</span>
           )}
@@ -34,7 +34,7 @@ export function ProductCard({ product, hasOptions = false }: { product: Product;
         <div className="mt-4 flex items-center justify-between gap-2">
           <span className="text-[15px] font-bold text-brand">{eur(product.priceCents)}</span>
           {hasOptions ? (
-            <Link href={`/cardapio/${product.slug}`} aria-label="Ver opções" className="rounded-full bg-gradient-to-br from-brand to-accent p-2.5 text-ink shadow-sm transition-transform hover:scale-105 active:scale-95">
+            <Link href={`/cardapio/${product.slug}`} aria-label="Ver opções" className="rounded-full bg-brand p-2.5 text-ink transition-colors hover:bg-brand-deep">
               <Plus className="h-4 w-4" />
             </Link>
           ) : (
