@@ -12,3 +12,7 @@ export const setItemSchema = z.object({
   itemId: z.string().cuid(),
   qty: z.number().int().min(0).max(20),
 });
+
+export const removeItemSchema = z.object({
+  itemId: z.string().cuid(),
+});

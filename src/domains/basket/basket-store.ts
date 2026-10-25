@@ -73,12 +73,34 @@ export async function addItem(userId: string | null, sessionToken: string | null
   return { error: null };
 }
 
-export async function setItemQuantity(cartItemId: string, qty: number) {
-  if (qty <= 0) {
-    await prisma.cartItem.delete({ where: { id: cartItemId } }).catch(() => {});
-    return;
+// A linha só é alterada se pertencer ao carrinho de quem pede (cartId vem da
+// sessão/cookie, nunca do cliente) — impede mexer em carrinhos alheios.
+export async function setItemQuantity(cartId: string, cartItemId: string, qty: number): Promise<boolean> {
+  if (!cartId) return false;
+  const where = { id: cartItemId, cartId };
+  const result = qty <= 0
+    ? await prisma.cartItem.deleteMany({ where })
+    : await prisma.cartItem.updateMany({ where, data: { qty: Math.min(qty, 20) } });
+  return result.count > 0;
+}
+
+export async function removeItem(cartId: string, cartItemId: string): Promise<boolean> {
+  if (!cartId) return false;
+  const result = await prisma.cartItem.deleteMany({ where: { id: cartItemId, cartId } });
+  return result.count > 0;
+}
+
+// Antes de fechar o pedido, revalida cada linha contra o cardápio atual:
+// adicionais removidos/esgotados ou grupos alterados bloqueiam a linha, e os
+// preços dos adicionais são os de agora (nunca um snapshot antigo mais barato).
+export async function revalidateBasket(cart: BasketSnapshot): Promise<{ ok: true; cart: BasketSnapshot } | { ok: false; productName: string }> {
+  const items: BasketSnapshot['items'] = [];
+  for (const item of cart.items) {
+    const selection = await validateSelection(item.product.id, item.options.map((o) => ({ itemId: o.itemId })));
+    if (!selection.ok || !item.product.available) return { ok: false, productName: item.product.name };
+    items.push({ ...item, options: selection.snapshot });
   }
-  await prisma.cartItem.update({ where: { id: cartItemId }, data: { qty: Math.min(qty, 20) } }).catch(() => {});
+  return { ok: true, cart: { ...cart, items } };
 }
 
 export async function clearBasket(userId: string | null, sessionToken: string | null) {
@@ -107,7 +129,7 @@ export async function absorbGuestBasket(userId: string, sessionToken: string | n
       await prisma.cartItem.update({ where: { id: existing.id }, data: { qty: Math.min(existing.qty + item.qty, 20) } });
     } else {
       await prisma.cartItem.create({
-        data: { cartId: userCart.id, productId: item.productId, qty: item.qty, optionsKey, optionsJson: item.optionsJson as Prisma.InputJsonValue | undefined },
+        data: { cartId: userCart.id, productId: item.productId, qty: Math.min(item.qty, 20), optionsKey, optionsJson: item.optionsJson as Prisma.InputJsonValue | undefined },
       });
     }
   }

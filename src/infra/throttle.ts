@@ -1,4 +1,4 @@
-import { log } from './logging';
+// Sem dependências de servidor (Prisma, Node): também corre no middleware (Edge).
 
 /**
  * Rate limiting por janela deslizante — implementação em memória.
@@ -13,12 +13,13 @@ import { log } from './logging';
 type Bucket = { timestamps: number[] };
 
 const memory = new Map<string, Bucket>();
+const MAX_WINDOW_MS = 60 * 60_000;
 
 // Limpeza periódica para evitar crescimento infinito do mapa.
 setInterval(() => {
   const now = Date.now();
   for (const [k, b] of memory) {
-    b.timestamps = b.timestamps.filter((t) => now - t < 15 * 60_000);
+    b.timestamps = b.timestamps.filter((t) => now - t < MAX_WINDOW_MS);
     if (b.timestamps.length === 0) memory.delete(k);
   }
 }, 10 * 60_000).unref?.();
@@ -45,11 +46,29 @@ export async function rateLimit(
   return memoryCheck(key, max, windowMs);
 }
 
-export function clientKey(req: Request, suffix = '') {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  return `${ip}:${suffix}`;
+/** Quantas tentativas já existem na janela, sem registar uma nova. */
+export function attemptsIn(key: string, windowMs: number): number {
+  const now = Date.now();
+  return (memory.get(key)?.timestamps ?? []).filter((t) => now - t < windowMs).length;
 }
 
-export function logRateLimit(key: string) {
-  log('warn', 'rate-limit.blocked', { key });
+/** Regista uma tentativa (ex.: código errado) sem verificar o limite. */
+export function recordAttempt(key: string) {
+  const bucket = memory.get(key) ?? { timestamps: [] };
+  bucket.timestamps.push(Date.now());
+  memory.set(key, bucket);
+}
+
+// IP do cliente. Na Vercel `x-real-ip`/`x-forwarded-for` são reescritos pela
+// plataforma; atrás de outro proxy, configure-o para fazer o mesmo.
+export function clientIp(req: Request) {
+  return (
+    req.headers.get('x-real-ip')?.trim() ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+  );
+}
+
+export function clientKey(req: Request, suffix = '') {
+  return `${clientIp(req)}:${suffix}`;
 }

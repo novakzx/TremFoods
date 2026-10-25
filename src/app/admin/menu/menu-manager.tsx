@@ -14,6 +14,12 @@ type ProductRow = {
 type OptionDraft = { name: string; priceCents: number; available: boolean; sort: number };
 type GroupDraft = { name: string; required: boolean; multiple: boolean; maxSelect: number | null; sort: number; options: OptionDraft[] };
 
+// Preços editados em euros (ex.: 12,50); guardados em cêntimos.
+const toCents = (value: string) => {
+  const n = Number(value.replace(',', '.'));
+  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
+};
+
 const emptyProduct = (categoryId: string): ProductRow => ({
   id: '', name: '', slug: '', description: '', categoryId, category: '', priceCents: 0, image: '', isFeatured: false, isNew: false, isVegetarian: false, isSpicy: false, sort: 0, available: true, hasOptions: false,
 });
@@ -67,10 +73,9 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
         setError(r.data.error?.message ?? 'Não foi possível guardar.');
         return;
       }
-      setNotice(draft.id ? 'Produto atualizado.' : 'Produto criado.');
+      setNotice(draft.id ? 'Produto atualizado.' : 'Produto criado — já pode juntar adicionais.');
       await reload();
       if (!draft.id) {
-        const created = products.find((x) => x.name === draft.name);
         const fresh = r.data as unknown as { product: { id: string } };
         if (fresh.product?.id) await openProduct({ ...draft, id: fresh.product.id, hasOptions: false, category: categories.find((c) => c.id === draft.categoryId)?.name ?? '' });
       }
@@ -84,7 +89,15 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
     setBusy(true);
     setError(null);
     try {
-      const r = await apiPut(`/api/admin/products/${draft.id}/options`, { groups });
+      const payload = groups.map((g, gi) => ({
+        name: g.name,
+        required: g.required,
+        multiple: g.multiple,
+        maxSelect: g.multiple ? g.maxSelect : null,
+        sort: gi,
+        options: g.options.map((o, oi) => ({ name: o.name, priceCents: o.priceCents, available: o.available, sort: oi })),
+      }));
+      const r = await apiPut(`/api/admin/products/${draft.id}/options`, { groups: payload });
       if (!r.ok) {
         setError(r.data.error?.message ?? 'Não foi possível guardar os adicionais.');
         return;
@@ -98,15 +111,19 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
   };
 
   const toggleAvailable = async (p: ProductRow) => {
+    setError(null);
     const r = await apiPatch(`/api/admin/products/${p.id}`, { available: !p.available });
-    if (r.ok) await reload();
+    if (!r.ok) setError(r.data.error?.message ?? 'Não foi possível alterar a disponibilidade.');
+    await reload();
   };
 
   const disableProduct = async (p: ProductRow) => {
     if (!window.confirm(`Desativar "${p.name}"? O artigo deixa de aparecer no site (histórico mantém-se).`)) return;
-    await apiDelete(`/api/admin/products/${p.id}`);
+    setError(null);
+    const r = await apiDelete(`/api/admin/products/${p.id}`);
+    if (!r.ok) setError(r.data.error?.message ?? 'Não foi possível desativar.');
     await reload();
-    if (draft?.id === p.id) openProduct(null);
+    if (r.ok && draft?.id === p.id) setDraft(null);
   };
 
   const saveCategory = async () => {
@@ -145,17 +162,17 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
     mutateGroups((gs) => gs.map((g, idx) => (idx === gi ? { ...g, options: g.options.map((o, j) => (j === oi ? { ...o, ...patch } : o)) } : g)));
 
   return (
-    <div className="mt-6 space-y-6">
-      {error && <p className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">{error}</p>}
-      {notice && <p className="rounded-xl bg-success/10 px-4 py-3 text-sm font-medium text-success">{notice}</p>}
+    <div className="mt-5 space-y-4">
+      {error && <p role="alert" className="alert-error">{error}</p>}
+      {notice && <p role="status" className="rounded-xl bg-success/10 px-4 py-3 text-[13px] font-medium text-success">{notice}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         {/* Coluna esquerda: categorias + lista de produtos */}
-        <div className="space-y-6">
-          <section className="card p-5">
+        <div className="space-y-4">
+          <section className="card p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-sm font-bold">Categorias (menus)</h2>
-              <button onClick={() => setCatDraft(catDraft?.id === '' ? null : { id: '', name: '', slug: '', description: '', sort: categories.length, productsCount: 0 })} className="btn-secondary text-xs">
+              <button onClick={() => setCatDraft(catDraft?.id === '' ? null : { id: '', name: '', slug: '', description: '', sort: categories.length, productsCount: 0 })} className="btn-secondary btn-sm">
                 <Plus className="h-3.5 w-3.5" /> Nova
               </button>
             </div>
@@ -179,17 +196,17 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
                 <input className="input" placeholder="Slug (vazio = automático)" value={catDraft.slug} onChange={(e) => setCatDraft({ ...catDraft, slug: e.target.value })} />
                 <input className="input" placeholder="Ordem" type="number" value={catDraft.sort} onChange={(e) => setCatDraft({ ...catDraft, sort: Number(e.target.value) })} />
                 <div className="flex gap-2">
-                  <button onClick={saveCategory} disabled={busy} className="btn-primary h-9 flex-1 text-xs"><Save className="h-3.5 w-3.5" /> Guardar</button>
-                  <button onClick={() => setCatDraft(null)} className="btn-secondary h-9 text-xs">Cancelar</button>
+                  <button onClick={saveCategory} disabled={busy} className="btn-primary btn-sm flex-1"><Save className="h-3.5 w-3.5" /> Guardar</button>
+                  <button onClick={() => setCatDraft(null)} className="btn-secondary btn-sm">Cancelar</button>
                 </div>
               </div>
             )}
           </section>
 
-          <section className="card p-5">
+          <section className="card p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-sm font-bold">Produtos</h2>
-              <button onClick={() => openProduct(null)} className="btn-primary text-xs"><Plus className="h-3.5 w-3.5" /> Novo produto</button>
+              <button onClick={() => openProduct(null)} className="btn-primary btn-sm"><Plus className="h-3.5 w-3.5" /> Novo produto</button>
             </div>
             <ul className="mt-3 max-h-[520px] divide-y divide-line overflow-y-auto">
               {products.map((p) => (
@@ -208,13 +225,13 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
         </div>
 
         {/* Editor do produto */}
-        <section className="card p-5">
+        <section className="card p-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-sm font-bold">{draft?.id ? `Editar: ${draft.name}` : 'Novo produto'}</h2>
             {draft?.id && (
               <div className="flex gap-2">
-                <button onClick={() => disableProduct(draft)} className="btn-ghost text-xs text-danger">Desativar</button>
-                <button onClick={() => openProduct(null)} className="btn-secondary text-xs"><X className="h-3.5 w-3.5" /> Fechar</button>
+                <button onClick={() => disableProduct(draft)} className="btn-ghost btn-sm text-danger">Desativar</button>
+                <button onClick={() => openProduct(null)} className="btn-secondary btn-sm"><X className="h-3.5 w-3.5" /> Fechar</button>
               </div>
             )}
           </div>
@@ -233,8 +250,8 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
                   <input id="p-slug" className="input" value={draft.slug} onChange={(e) => set('slug', e.target.value)} placeholder="x-salada-da-casa" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="p-price">Preço (cêntimos)</label>
-                  <input id="p-price" className="input" type="number" min={0} value={draft.priceCents} onChange={(e) => set('priceCents', Number(e.target.value))} />
+                  <label className="label" htmlFor="p-price">Preço (€)</label>
+                  <input id="p-price" className="input" type="number" inputMode="decimal" min={0} step="0.01" value={draft.priceCents / 100} onChange={(e) => set('priceCents', toCents(e.target.value))} />
                   <p className="mt-1 text-xs text-muted">= {eur(draft.priceCents)}</p>
                 </div>
                 <div>
@@ -271,7 +288,7 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
               <div className="flex flex-wrap gap-4 text-sm">
                 {([['isFeatured', 'Destaque da casa'], ['isNew', 'Novo'], ['isVegetarian', 'Vegetariano'], ['isSpicy', 'Picante']] as const).map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 font-medium">
-                    <input type="checkbox" checked={draft[key]} onChange={(e) => set(key, e.target.checked)} className="h-4 w-4 accent-[#E9A400]" /> {label}
+                    <input type="checkbox" checked={draft[key]} onChange={(e) => set(key, e.target.checked)} className="h-4 w-4 accent-[#FF6A00]" /> {label}
                   </label>
                 ))}
               </div>
@@ -282,7 +299,7 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
 
               {/* Adicionais */}
               {draft.id && (
-                <div className="rounded-2xl border border-dashed border-ink/20 bg-paper p-4">
+                <div className="rounded-xl border border-line bg-paper p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-display text-sm font-bold">Adicionais</p>
@@ -290,7 +307,7 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
                     </div>
                     <button
                       onClick={() => mutateGroups((gs) => [...gs, { name: '', required: true, multiple: false, maxSelect: null, sort: gs.length, options: [{ name: '', priceCents: 0, available: true, sort: 0 }] }])}
-                      className="btn-secondary text-xs"
+                      className="btn-secondary btn-sm"
                     >
                       <Plus className="h-3.5 w-3.5" /> Grupo
                     </button>
@@ -300,8 +317,8 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
                     <div key={gi} className="mt-4 rounded-xl border border-line bg-surface p-3">
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto]">
                         <input className="input" placeholder="Nome do grupo (ex.: Extras)" value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} />
-                        <label className="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" checked={g.required} onChange={(e) => setGroup(gi, { required: e.target.checked })} className="h-3.5 w-3.5 accent-[#E9A400]" /> Obrigatório</label>
-                        <label className="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" checked={g.multiple} onChange={(e) => setGroup(gi, { multiple: e.target.checked, maxSelect: e.target.checked ? g.maxSelect ?? 4 : null })} className="h-3.5 w-3.5 accent-[#E9A400]" /> Múltipla</label>
+                        <label className="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" checked={g.required} onChange={(e) => setGroup(gi, { required: e.target.checked })} className="h-3.5 w-3.5 accent-[#FF6A00]" /> Obrigatório</label>
+                        <label className="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" checked={g.multiple} onChange={(e) => setGroup(gi, { multiple: e.target.checked, maxSelect: e.target.checked ? g.maxSelect ?? 4 : null })} className="h-3.5 w-3.5 accent-[#FF6A00]" /> Múltipla</label>
                         {g.multiple && <input className="input w-20" type="number" min={2} max={20} placeholder="Máx." value={g.maxSelect ?? ''} onChange={(e) => setGroup(gi, { maxSelect: e.target.value ? Number(e.target.value) : null })} />}
                         <button onClick={() => mutateGroups((gs) => gs.filter((_, i) => i !== gi))} className="rounded-lg p-2 text-muted hover:bg-danger/10 hover:text-danger" aria-label="Remover grupo"><Trash2 className="h-4 w-4" /></button>
                       </div>
@@ -309,20 +326,20 @@ export function MenuManager({ initialProducts, initialCategories }: { initialPro
                         {g.options.map((o, oi) => (
                           <div key={oi} className="flex items-center gap-2">
                             <input className="input flex-1" placeholder="Opção (ex.: Ovo frito)" value={o.name} onChange={(e) => setOption(gi, oi, { name: e.target.value })} />
-                            <input className="input w-28" type="number" min={0} placeholder="€ cênt." value={o.priceCents} onChange={(e) => setOption(gi, oi, { priceCents: Number(e.target.value) })} />
-                            <span className="w-16 text-right text-xs text-muted">{eur(o.priceCents)}</span>
-                            <button onClick={() => setOption(gi, oi, { available: !o.available })} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${o.available ? 'bg-success/10 text-success' : 'bg-ink/10 text-muted'}`} aria-label="Disponibilidade">disponível</button>
+                            <input className="input w-24" type="number" inputMode="decimal" min={0} step="0.01" aria-label="Preço extra (€)" placeholder="+ €" value={o.priceCents / 100} onChange={(e) => setOption(gi, oi, { priceCents: toCents(e.target.value) })} />
+                            <button onClick={() => setOption(gi, oi, { available: !o.available })} aria-pressed={o.available} className={`w-20 rounded-lg px-2 py-1 text-[11px] font-semibold ${o.available ? 'bg-success/10 text-success' : 'bg-ink/10 text-muted'}`}>{o.available ? 'disponível' : 'esgotado'}</button>
                             <button onClick={() => mutateGroups((gs) => gs.map((x, i) => (i === gi ? { ...x, options: x.options.filter((_, j) => j !== oi) } : x)))} className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger" aria-label="Remover opção"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
                         ))}
-                        <button onClick={() => mutateGroups((gs) => gs.map((x, i) => (i === gi ? { ...x, options: [...x.options, { name: '', priceCents: 0, available: true, sort: x.options.length }] } : x)))} className="btn-ghost text-xs">
+                        <button onClick={() => mutateGroups((gs) => gs.map((x, i) => (i === gi ? { ...x, options: [...x.options, { name: '', priceCents: 0, available: true, sort: x.options.length }] } : x)))} className="btn-ghost btn-sm">
                           <Plus className="h-3.5 w-3.5" /> Opção
                         </button>
                       </div>
                     </div>
                   ))}
-                  {groups.length > 0 && (
-                    <button onClick={saveGroups} disabled={busy || !groupsDirty} className="btn-secondary mt-3 text-xs disabled:opacity-50">
+                  {groups.length === 0 && !groupsDirty && <p className="mt-3 text-xs text-muted">Sem adicionais.</p>}
+                  {(groups.length > 0 || groupsDirty) && (
+                    <button onClick={saveGroups} disabled={busy || !groupsDirty} className="btn-primary btn-sm mt-3">
                       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Guardar adicionais
                     </button>
                   )}

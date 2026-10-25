@@ -1,27 +1,26 @@
-import { Check, Clock } from 'lucide-react';
-import { LIFECYCLE, FLOW } from '@/domains/orders/order-status';
+import { Check } from 'lucide-react';
+import { LIFECYCLE, FLOW } from '@/domains/orders/lifecycle';
 
+const TIME = new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' });
 
 /**
- * Linha do tempo visual do pedido (entrega ou levantamento).
- * Sem animações — apenas estado presente/restante e a hora do evento.
+ * Linha do tempo do pedido (entrega ou levantamento): vertical no telemóvel,
+ * horizontal a partir de `sm`. Cada passo mostra a hora em que aconteceu.
  */
 export function StatusTimeline({
   status,
   deliveryMethod,
   events,
-  compact = false,
 }: {
   status: string;
   deliveryMethod: 'DELIVERY' | 'PICKUP';
   events?: { status: string; at: string | Date }[];
-  compact?: boolean;
 }) {
   if (status === 'CANCELLED') {
     return (
-      <div className="rounded-xl border border-danger/25 bg-danger/5 px-4 py-3 text-sm font-medium text-danger">
-        Este pedido foi cancelado. Se já efetuou o pagamento, será reembolsado em 3-5 dias úteis.
-      </div>
+      <p className="alert-error">
+        Este pedido foi cancelado. Se já tinha pago online, o reembolso é feito em 3–5 dias úteis.
+      </p>
     );
   }
 
@@ -29,41 +28,36 @@ export function StatusTimeline({
   const at = new Map((events ?? []).map((e) => [e.status, new Date(e.at)]));
 
   return (
-    <ol className={compact ? 'flex items-center gap-0' : 'grid gap-0 sm:grid-cols-[repeat(4,1fr)]'}>
+    <ol className="grid gap-4 sm:grid-cols-4 sm:gap-2">
       {FLOW.map((step, i) => {
         const done = i <= current;
         const meta = LIFECYCLE[step];
         const label = deliveryMethod === 'PICKUP' && meta.pickupLabel ? meta.pickupLabel : meta.label;
         const time = at.get(step);
         return (
-          <li key={step} className={compact ? 'flex-1' : 'relative flex gap-3 sm:block'}>
-            {/* linha de ligação */}
-            {i > 0 && (
+          <li key={step} className="relative flex items-start gap-3 sm:flex-col sm:gap-2">
+            {/* traço até ao passo seguinte */}
+            {i < FLOW.length - 1 && (
               <span
                 aria-hidden
-                className={`absolute left-[9px] top-[17px] h-full w-px bg-line sm:left-0 sm:top-[18px] sm:h-px sm:w-full ${
-                  compact ? 'top-[11px]' : ''
-                } ${i <= current ? 'bg-brand' : ''}`}
-                style={compact ? { left: 22, top: 11, width: 'calc(100% - 44px)' } : undefined}
+                className={`absolute left-[13px] top-7 h-[calc(100%-12px)] w-0.5 sm:left-7 sm:top-[13px] sm:h-0.5 sm:w-[calc(100%-20px)] ${i < current ? 'bg-brand' : 'bg-line'}`}
               />
             )}
-            <div className="relative flex items-center gap-3 py-1 sm:block sm:pr-4">
-              <span
-                className={`z-10 flex h-9 w-9 flex-none items-center justify-center rounded-full border-2 transition-colors ${
-                  done ? 'border-transparent bg-brand text-ink' : 'border-line bg-surface text-muted'
-                }`}
-              >
-                {done ? <Check className="h-4 w-4" strokeWidth={3} /> : <Clock className="h-4 w-4" />}
+            <span
+              className={`relative z-10 flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 text-xs font-bold ${
+                done ? 'border-brand bg-brand text-ink' : 'border-line bg-surface text-muted'
+              }`}
+            >
+              {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
+            </span>
+            <span className="pt-1 sm:pt-0">
+              <span className={`block text-[13px] font-semibold ${done ? 'text-ink' : 'text-muted'}`}>{label}</span>
+              <span className="block text-xs text-muted">
+                {time ? TIME.format(time) : i === current + 1 ? 'a seguir' : ''}
+                {done && i === current && !time ? 'agora' : ''}
               </span>
-              <div className="sm:mt-2">
-                <p className={`text-[13px] font-semibold ${done ? 'text-ink' : 'text-muted'}`}>{label}</p>
-                {!compact && (
-                  <p className="mt-0.5 text-xs text-muted">
-                    {time ? new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit' }).format(time) : done && i === current ? 'em curso' : 'agendado'}
-                  </p>
-                )}
-              </div>
-            </div>
+            </span>
+            <span className="sr-only">{done ? '(concluído)' : '(pendente)'}</span>
           </li>
         );
       })}

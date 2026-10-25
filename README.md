@@ -31,7 +31,7 @@ Pronto para deploy na Vercel.
 npm install
 cp .env.example .env   # edite os valores
 npx prisma migrate dev # cria o schema (PostgreSQL)
-npm run db:seed        # categorias, produtos, admin, contador
+ADMIN_PASSWORD='uma-senha-forte-com-12+' npm run db:seed   # categorias, produtos, admin, contador
 npm run dev            # http://localhost:3000
 ```
 
@@ -40,13 +40,12 @@ npm run dev            # http://localhost:3000
 | Variável | Descrição |
 | --- | --- |
 | `DATABASE_URL` | `postgresql://utilizador:palavra-passe@host:5432/tremfood` |
-| `AUTH_SECRET` | 64 hex aleatórios (sessões e CSRF) |
 | `APP_URL` | URL pública (links nos e-mails) |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | envio de e-mail (sem SMTP, os links de verificação são devolvidos na resposta de registo — apenas dev) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | envio de e-mail (em desenvolvimento, sem SMTP, os links de verificação/reposição vêm na resposta da API; em produção nunca) |
 | `MAIL_FROM` | remetente dos e-mails |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | pagamentos (sem Stripe, o checkout cai para dinheiro) |
 | `REDIS_URL` | opcional — reservado para rate limiting multi-instância |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | credenciais do administrador no seed (trocá-las sempre) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | administrador criado pelo seed. Sem `ADMIN_PASSWORD` (mínimo 12 caracteres) o admin **não** é criado — não há senha por omissão |
 
 ## Produção
 
@@ -54,11 +53,19 @@ npm run dev            # http://localhost:3000
 npm run build && npm start     # Vercel: sem passos extra (build automático)
 ```
 
+- O build (`scripts/db-sync.js`) sincroniza o schema **sem** `--accept-data-loss` (uma
+  alteração destrutiva falha em vez de apagar dados) e corre o seed em modo seguro: só cria
+  o que falta, nunca reescreve preços, fotos, adicionais ou produtos editados no painel.
+  Para repor o cardápio exatamente como está em `prisma/seed.ts`: `npm run db:seed -- --overwrite`.
 - Rate limiting corre em memória (mono-instância). Em múltiplas instâncias, ligue o
   rate limiting a um Redis partilhado (ver `src/infra/throttle.ts`).
-- Configure o webhook do Stripe para `/api/payments/stripe/webhook`.
+- Configure o webhook do Stripe para `/api/payments/stripe/webhook` com os eventos
+  `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`, `payment_intent.succeeded` e `payment_intent.payment_failed`.
 - SMTP obrigatório em produção (os links de verificação nunca são devolvidos na resposta).
-  Troque as credenciais do admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) antes do primeiro deploy.
+- A senha antiga por omissão do admin (`TrocarAdmin2026`) deixou de ser aceite no login.
+  Se o admin ainda a usar, defina `ADMIN_PASSWORD` e volte a correr o seed (substitui-a),
+  ou use "Esqueci-me da palavra-passe".
 
 ## Testes
 
@@ -68,8 +75,9 @@ node e2e/smoke.mjs   # E2E: cardápio → carrinho (com adicionais) → registo 
 node e2e/shots-menu.mjs  # screenshots do produto com adicionais, carrinho e editor do cardápio
 ```
 
-A suíte assume `NODE_ENV=production` com SMTP desconfigurado (links de desenvolvimento
-devolvidos pela API) e as credenciais de admin do seed.
+A suíte assume o servidor de desenvolvimento (`npm run dev`) sem SMTP — só aí a API devolve
+os links de verificação — e as credenciais de admin definidas em `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+Testes unitários: `npx tsx e2e/unit-hours.ts` e `npx tsx e2e/unit-metrics.ts`.
 
 ## Estrutura
 

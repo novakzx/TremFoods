@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ShopStatusBar } from '@/components/shop-status-bar';
 import { PwaRegister } from '@/components/pwa-register';
 import { InstallBanner } from '@/components/install-banner';
 import { CookieConsent } from '@/components/cookie-consent';
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#231506',
+  themeColor: '#FFFFFF',
   width: 'device-width',
   initialScale: 1,
 };
@@ -86,7 +87,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               telephone: '+351 964 994 787',
               email: 'ola@tremfood.pt',
               url: SITE.url,
-              image: `${SITE.url}/img/items/real-x-salada.jpg`,
+              image: `${SITE.url}/img/hero/brasa-prime.jpg`,
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: 'Av. António José Gomes 6',
@@ -105,6 +106,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <PwaRegister />
         <Header user={user ? { name: user.name, email: user.email, role: user.role } : null} cartCount={cartCount} />
+        <ShopStatusBar />
         <main className="flex-1">{children}</main>
         <Footer />
         <InstallBanner />

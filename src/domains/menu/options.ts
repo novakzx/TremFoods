@@ -45,8 +45,9 @@ export async function validateSelection(productId: string, selected: SelectedOpt
   const ids = selected.map((s) => s.itemId);
   if (new Set(ids).size !== ids.length) return { ok: false, message: 'Adicional repetido.' };
 
+  // Só opções dos grupos DESTE produto (um id de outro produto não entra).
   const items = ids.length
-    ? await prisma.optionItem.findMany({ where: { id: { in: ids }, available: true } })
+    ? await prisma.optionItem.findMany({ where: { id: { in: ids }, available: true, groupId: { in: groups.map((g) => g.id) } } })
     : [];
   if (items.length !== ids.length) return { ok: false, message: 'Um dos adicionais já não está disponível.' };
 

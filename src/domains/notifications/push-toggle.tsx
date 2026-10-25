@@ -40,27 +40,24 @@ export function PushToggle({ orderNumber, code }: { orderNumber: string; code?: 
           setNotice('Não foi possível ativar neste dispositivo.');
         }
       }
+    } catch {
+      setNotice('Não foi possível ativar neste dispositivo.');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-4 py-3.5">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand">
-          {active ? <Bell className="h-4.5 w-4.5" /> : <BellOff className="h-4.5 w-4.5 text-muted" />}
-        </span>
-        <div>
-          <p className="text-sm font-semibold">{active ? 'Notificações ativas' : 'Acompanhe este pedido'}</p>
-          <p className="text-xs text-muted">
-            {active ? 'Vai receber um aviso a cada mudança de estado.' : 'Receba um aviso quando o estado mudar.'}
-          </p>
-          {notice && <p className="mt-1 text-xs font-medium text-brand">{notice}</p>}
+    <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-line bg-paper px-3.5 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {active ? <Bell className="h-4.5 w-4.5 flex-none text-brand-deep" /> : <BellOff className="h-4.5 w-4.5 flex-none text-muted" />}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{active ? 'Notificações ativas' : 'Receber aviso quando o estado mudar'}</p>
+          {notice && <p className="mt-0.5 text-xs text-muted">{notice}</p>}
         </div>
       </div>
-      <button onClick={toggle} disabled={busy} className="btn-secondary shrink-0 text-xs">
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : active ? 'Desativar' : 'Ativar notificações'}
+      <button onClick={toggle} disabled={busy} className="btn-secondary btn-sm shrink-0">
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : active ? 'Desativar' : 'Ativar'}
       </button>
     </div>
   );

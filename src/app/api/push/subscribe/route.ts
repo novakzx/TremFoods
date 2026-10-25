@@ -3,6 +3,7 @@ import { requireUser, verifyCsrf } from '@/domains/account/session';
 import { subscribeSchema, unsubscribeSchema } from '@/domains/notifications/validators';
 import { parseJson, VALIDATION_ERROR } from '@/infra/api-reply';
 import { log, logValidation } from '@/infra/logging';
+import { phoneMatches, recordTrackingFailure, trackingLocked } from '@/domains/orders/tracking-guard';
 import { prisma } from '@/infra/db';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +26,13 @@ export async function POST(req: Request) {
       where: { number: orderNumber },
       select: { userId: true, customerPhone: true },
     });
-    if (!order) {
-      return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Pedido não encontrado.' } }, { status: 404 });
+    if (trackingLocked(orderNumber)) {
+      return NextResponse.json({ error: { code: 'RATE_LIMITED', message: 'Demasiadas tentativas para este pedido.' } }, { status: 429 });
     }
-    const owner = Boolean(user && order.userId === user.id);
-    const knowsCode = Boolean(code && order.customerPhone?.replace(/\D/g, '').endsWith(code));
-    if (!owner && !knowsCode) {
+    const owner = Boolean(user && order?.userId === user.id);
+    const knowsCode = Boolean(code && phoneMatches(order?.customerPhone, code));
+    if (!order || (!owner && !knowsCode)) {
+      recordTrackingFailure(orderNumber);
       return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Código de acompanhamento inválido.' } }, { status: 403 });
     }
   }

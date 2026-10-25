@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from '@/infra/db';
-import { env } from '@/infra/config';
+import { clientIp } from '@/infra/throttle';
 
 const SESSION_COOKIE = 'trem_session';
 const CSRF_COOKIE = 'trem_csrf';
@@ -35,7 +35,7 @@ function safeEqual(a: string, b: string) {
 
 export async function issueSession(userId: string, req: Request | null) {
   const token = randomBytes(32).toString('base64url');
-  const ip = req ? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null : null;
+  const ip = req ? clientIp(req) : null;
   const ua = req ? req.headers.get('user-agent')?.slice(0, 255) ?? null : null;
   await prisma.session.create({
     data: { userId, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + SESSION_TTL_MS), ip, userAgent: ua },
@@ -88,18 +88,33 @@ export async function revokeAllSessions(userId: string, exceptTokenHash?: string
   });
 }
 
+/** Lê um cookie do cabeçalho do pedido (route handlers recebem `Request`). */
+export function readCookie(req: Request, name: string) {
+  return req.headers.get('cookie')?.match(new RegExp(`(?:^|; )${name}=([^;]+)`))?.[1] ?? null;
+}
+
 /* ---------------- CSRF (double-submit) ---------------- */
 
-export function issueCsrf() {
-  const token = randomBytes(24).toString('base64url');
-  return { token, cookie: `${CSRF_COOKIE}=${token}; Path=/; SameSite=Lax; ${isSecureEnv() ? 'Secure; ' : ''}HttpOnly=false` };
+const CSRF_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
+
+// O token chega ao cliente pelo corpo JSON de /api/auth/csrf (outra origem não o
+// consegue ler); o cookie é HttpOnly. Reutiliza o token existente para que
+// vários separadores abertos não se invalidem uns aos outros.
+export function issueCsrf(req: Request) {
+  const existing = readCookie(req, CSRF_COOKIE);
+  const token = existing && CSRF_TOKEN_RE.test(existing) ? existing : randomBytes(24).toString('base64url');
+  return { token, cookie: `${CSRF_COOKIE}=${token}; Path=/; SameSite=Strict; HttpOnly${isSecureEnv() ? '; Secure' : ''}` };
 }
 
 export function verifyCsrf(req: Request) {
-  const cookieToken = req.headers.get('cookie')?.match(new RegExp(`(?:^|; )${CSRF_COOKIE}=([^;]+)`))?.[1];
+  const cookieToken = readCookie(req, CSRF_COOKIE);
   const headerToken = req.headers.get('x-csrf-token');
   if (!cookieToken || !headerToken) return false;
   return safeEqual(cookieToken, headerToken);
+}
+
+export function sessionTokenFrom(req: Request) {
+  return readCookie(req, SESSION_COOKIE);
 }
 
 /* ---------------- Cart (sessão anónima por cookie) ---------------- */
@@ -116,7 +131,7 @@ export function persistBasketCookie(res: { cookies: { set: (name: string, value:
 }
 
 export function readBasketToken(req: Request) {
-  return req.headers.get('cookie')?.match(new RegExp(`(?:^|; )${CART_COOKIE}=([^;]+)`))?.[1] ?? null;
+  return readCookie(req, CART_COOKIE);
 }
 
-export const secrets = { SESSION_COOKIE, CSRF_COOKIE, CART_COOKIE, env };
+export const secrets = { SESSION_COOKIE, CSRF_COOKIE, CART_COOKIE };
