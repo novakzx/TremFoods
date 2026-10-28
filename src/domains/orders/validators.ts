@@ -3,10 +3,17 @@ import { cleanText } from '@/domains/shared-kernel/text';
 
 const phoneRegex = /^\+?[0-9]{9,15}$/;
 
+// Aceita o número como as pessoas o escrevem ("912 345 678", "+351 912-345-678")
+// e guarda só dígitos (com o + inicial, se existir).
+const phone = z.preprocess(
+  (v) => (typeof v === 'string' ? v.trim().replace(/[\s().-]/g, '') : v),
+  z.string().regex(phoneRegex, 'Indique um número de telefone válido'),
+);
+
 export const checkoutSchema = z
   .object({
     customerName: z.string().min(2).max(80).transform((v) => cleanText(v, 80)),
-    customerPhone: z.string().regex(phoneRegex, 'Indique um número de telefone válido'),
+    customerPhone: phone,
     customerEmail: z.string().trim().toLowerCase().email('E-mail inválido').max(160).optional().or(z.literal('')),
     deliveryMethod: z.enum(['DELIVERY', 'PICKUP']),
     addressStreet: z.string().max(120).optional().transform((v) => (v ? cleanText(v, 120) : '')),

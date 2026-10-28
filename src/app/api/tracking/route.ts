@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/infra/db';
 import { LIFECYCLE } from '@/domains/orders/order-status';
+import { phoneMatches, recordTrackingFailure, trackingLocked } from '@/domains/orders/tracking-guard';
+import { courierPositionOf } from '@/domains/delivery/courier';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,11 +17,15 @@ export async function GET(req: Request) {
   if (!number || !/^TF-\d{6}$/.test(number) || !/^\d{4}$/.test(code)) {
     return NextResponse.json({ error: { code: 'INVALID_INPUT', message: 'Indique o número do pedido (TF-000000) e os 4 últimos dígitos do telefone.' } }, { status: 400 });
   }
+  if (trackingLocked(number)) {
+    return NextResponse.json({ error: { code: 'RATE_LIMITED', message: 'Demasiadas tentativas para este pedido. Tente novamente dentro de uma hora ou inicie sessão para o ver.' } }, { status: 429 });
+  }
   const order = await prisma.order.findUnique({
     where: { number },
     include: { events: { orderBy: { createdAt: 'asc' } } },
   });
-  if (!order || !order.customerPhone.endsWith(code)) {
+  if (!order || !phoneMatches(order.customerPhone, code)) {
+    recordTrackingFailure(number);
     return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Pedido não encontrado. Verifique os dados.' } }, { status: 404 });
   }
   return NextResponse.json({
@@ -28,6 +34,8 @@ export async function GET(req: Request) {
     statusLabel: LIFECYCLE[order.status]?.label ?? order.status,
     deliveryMethod: order.deliveryMethod,
     estimatedMinutes: order.etaMinutes,
+    expectedAt: order.etaMinutes ? new Date(order.createdAt.getTime() + order.etaMinutes * 60_000).toISOString() : null,
+    courier: courierPositionOf(order),
     events: order.events.map((e) => ({ status: e.status, label: LIFECYCLE[e.status]?.label ?? e.status, at: e.createdAt })),
   });
 }

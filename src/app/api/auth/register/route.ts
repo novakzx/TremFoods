@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { randomBytes, createHash } from 'crypto';
-import { issueSession, cookieOptions, secrets, verifyCsrf } from '@/domains/account/session';
+import { issueSession, cookieOptions, secrets, verifyCsrf, readBasketToken, persistBasketCookie } from '@/domains/account/session';
+import { absorbGuestBasket } from '@/domains/basket/basket-store';
 import { sendMail, verifyEmailHtml } from '@/domains/comms/mailer';
 import { hashPassword } from '@/domains/account/credentials';
 import { parseJson, VALIDATION_ERROR } from '@/infra/api-reply';
-import { mailConfigured } from '@/infra/config';
+import { env, exposeDevLinks } from '@/infra/config';
 import { audit, logValidation } from '@/infra/logging';
 import { registerSchema } from '@/domains/account/validators';
 import { prisma } from '@/infra/db';
@@ -36,16 +37,21 @@ export async function POST(req: Request) {
     data: { userId: user.id, tokenHash: createHash('sha256').update(token).digest('hex'), type: 'EMAIL_VERIFY', expiresAt: new Date(Date.now() + TOKEN_TTL) },
   });
 
-  const link = `${process.env.APP_URL ?? 'http://localhost:3000'}/verificar-email?token=${token}`;
+  const link = `${env.APP_URL}/verificar-email?token=${token}`;
   await sendMail(email, 'Confirme o seu e-mail', verifyEmailHtml(link), `Confirme o seu e-mail: ${link}`);
   await audit('auth.register', req, user.id, email);
 
+  // A conta nova já fica com sessão iniciada e herda o carrinho de visitante.
   const sessionToken = await issueSession(user.id, req);
+  const cartToken = readBasketToken(req);
+  await absorbGuestBasket(user.id, cartToken);
+
   const res = NextResponse.json({
     user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: false },
-    // Em dev o SMTP não está configurado: devolvemos o link para testes locais.
-    ...(!mailConfigured ? { devVerifyLink: link } : {}),
+    // Em desenvolvimento sem SMTP devolvemos o link para testes locais.
+    ...(exposeDevLinks ? { devVerifyLink: link } : {}),
   }, { status: 201 });
   res.cookies.set(secrets.SESSION_COOKIE, sessionToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 });
+  if (cartToken) persistBasketCookie(res, cartToken);
   return res;
 }

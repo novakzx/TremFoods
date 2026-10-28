@@ -1,5 +1,20 @@
+// Horário avaliado sempre na hora de Lisboa, qualquer que seja o fuso da máquina.
 import { withinOpeningHours } from '../src/domains/shop/hours';
-const at = (h: number, m: number) => new Date(2026, 8, 8, h, m);
-for (const [label, d] of [['03:00', at(3, 0)], ['06:29', at(6, 29)], ['06:30', at(6, 30)], ['13:00', at(13, 0)], ['23:59', at(23, 59)]] as const) {
-  console.log(label, '→', withinOpeningHours(d));
+
+let fails = 0;
+const cases: [string, string, boolean][] = [
+  ['03:00 (verão)', '2026-09-08T02:00:00Z', false],
+  ['06:29 (verão)', '2026-09-08T05:29:00Z', false],
+  ['06:30 (verão)', '2026-09-08T05:30:00Z', true],
+  ['23:59 (verão)', '2026-09-08T22:59:00Z', true],
+  ['00:01 (verão)', '2026-09-08T23:01:00Z', false],
+  ['06:29 (inverno)', '2026-12-08T06:29:00Z', false],
+  ['06:30 (inverno)', '2026-12-08T06:30:00Z', true],
+];
+for (const [label, iso, expected] of cases) {
+  const got = withinOpeningHours(new Date(iso));
+  console.log(`${got === expected ? '✓' : '✗'} ${label} → ${got}`);
+  if (got !== expected) fails++;
 }
+console.log(fails === 0 ? '\n✅ UNIT HOURS OK' : `\n❌ ${fails} falhas`);
+process.exit(fails === 0 ? 0 : 1);

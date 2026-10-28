@@ -6,8 +6,8 @@ import { issueCsrf } from '@/domains/account/session';
 // devolver o cookie → login falha com "Token de segurança inválido").
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const { token, cookie } = issueCsrf();
+export async function GET(req: Request) {
+  const { token, cookie } = issueCsrf(req);
   const res = NextResponse.json({ csrfToken: token });
   res.headers.set('set-cookie', cookie);
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');

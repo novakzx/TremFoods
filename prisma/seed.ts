@@ -52,11 +52,11 @@ const burgerExtras: OptionGroupSeed = {
   multiple: true,
   sort: 2,
   options: [
-    { name: 'Bacon em Cubos Extra (+1,50 €)', priceCents: 150, sort: 1 },
-    { name: 'Queijo Derretido Extra (+1,00 €)', priceCents: 100, sort: 2 },
-    { name: 'Ovo Estrelado (+1,00 €)', priceCents: 100, sort: 3 },
-    { name: 'Carne de Hambúrguer 120g (+2,50 €)', priceCents: 250, sort: 4 },
-    { name: 'Molho Especial da Casa (+0,80 €)', priceCents: 80, sort: 5 },
+    { name: 'Bacon em Cubos Extra', priceCents: 150, sort: 1 },
+    { name: 'Queijo Derretido Extra', priceCents: 100, sort: 2 },
+    { name: 'Ovo Estrelado', priceCents: 100, sort: 3 },
+    { name: 'Carne de Hambúrguer 120g', priceCents: 250, sort: 4 },
+    { name: 'Molho Especial da Casa', priceCents: 80, sort: 5 },
   ],
 };
 
@@ -462,13 +462,19 @@ const products: ProductSeed[] = [
   },
 ];
 
+// Por omissão o seed só CRIA o que falta (corre em cada build): nunca apaga nem
+// reescreve o que foi editado no painel (preços, fotos, adicionais, produtos
+// esgotados ou criados no admin). `npm run db:seed -- --overwrite` (ou
+// SEED_OVERWRITE=1) repõe o cardápio exatamente como está neste ficheiro.
+const overwrite = process.argv.includes('--overwrite') || process.env.SEED_OVERWRITE === '1';
+
 async function main() {
-  console.log('Iniciando Seed do cardápio Trem Food…');
+  console.log(`Iniciando Seed do cardápio Trem Food (${overwrite ? 'sincronização total' : 'só cria o que falta'})…`);
 
   for (const c of categories) {
     await prisma.category.upsert({
       where: { slug: c.slug },
-      update: c,
+      update: overwrite ? c : {},
       create: c,
     });
   }
@@ -490,6 +496,9 @@ async function main() {
       categoryId,
       available: true,
     };
+
+    const existing = await prisma.product.findUnique({ where: { slug: p.slug }, select: { id: true } });
+    if (existing && !overwrite) continue;
 
     const product = await prisma.product.upsert({
       where: { slug: p.slug },
@@ -531,12 +540,15 @@ async function main() {
     }
   }
 
-  // Desativar artigos legados que não estão no novo cardápio
-  const activeSlugs = products.map((p) => p.slug);
-  await prisma.product.updateMany({
-    where: { slug: { notIn: activeSlugs } },
-    data: { available: false },
-  });
+  // Desativar artigos legados que não estão no novo cardápio (só na sincronização
+  // total — senão os produtos criados no painel seriam desativados a cada deploy).
+  if (overwrite) {
+    const activeSlugs = products.map((p) => p.slug);
+    await prisma.product.updateMany({
+      where: { slug: { notIn: activeSlugs } },
+      data: { available: false },
+    });
+  }
 
   await prisma.counter.upsert({
     where: { id: 1 },
@@ -544,22 +556,48 @@ async function main() {
     create: { id: 1, value: 0 },
   });
 
-  const email = process.env.ADMIN_EMAIL || 'admin@tremfood.pt';
-  const password = process.env.ADMIN_PASSWORD || 'TrocarAdmin2026';
-  const hash = await bcrypt.hash(password, 12);
-  await prisma.user.upsert({
-    where: { email },
-    update: { role: 'ADMIN' },
-    create: {
+  await seedAdmin();
+
+  console.log(`Seed concluído com sucesso! ${products.length} produtos ${overwrite ? 'sincronizados' : 'verificados'}.`);
+}
+
+const LEAKED_DEFAULT_PASSWORD = 'TrocarAdmin2026';
+
+// Administrador inicial. Sem palavra-passe por omissão: uma senha escrita no
+// código (e no repositório público) daria acesso ao painel a qualquer pessoa.
+async function seedAdmin() {
+  const email = (process.env.ADMIN_EMAIL || 'admin@tremfood.pt').trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD ?? '';
+  const strong = password.length >= 12 && password !== LEAKED_DEFAULT_PASSWORD;
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    if (existing.role !== 'ADMIN') await prisma.user.update({ where: { email }, data: { role: 'ADMIN' } });
+    // Contas criadas pela versão antiga do seed ficaram com a senha pública.
+    if (await bcrypt.compare(LEAKED_DEFAULT_PASSWORD, existing.passwordHash)) {
+      if (strong) {
+        await prisma.user.update({ where: { email }, data: { passwordHash: await bcrypt.hash(password, 12) } });
+        await prisma.session.updateMany({ where: { userId: existing.id }, data: { expiresAt: new Date(0) } });
+        console.log('[seed] Senha por omissão do administrador substituída pela de ADMIN_PASSWORD.');
+      } else {
+        console.warn('[seed] ATENÇÃO: o administrador ainda usa a senha por omissão pública. Defina ADMIN_PASSWORD (12+ caracteres) e volte a correr o seed.');
+      }
+    }
+    return;
+  }
+  if (!strong) {
+    console.warn('[seed] ADMIN_PASSWORD em falta ou fraca (mínimo 12 caracteres) — administrador NÃO criado.');
+    return;
+  }
+  await prisma.user.create({
+    data: {
       name: 'Administração Trem Food',
       email,
-      passwordHash: hash,
+      passwordHash: await bcrypt.hash(password, 12),
       role: 'ADMIN',
       emailVerifiedAt: new Date(),
     },
   });
-
-  console.log(`Seed concluído com sucesso! ${products.length} produtos adicionados.`);
+  console.log(`[seed] Administrador criado: ${email}`);
 }
 
 main()

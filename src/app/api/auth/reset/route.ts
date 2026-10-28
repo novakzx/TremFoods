@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { verifyCsrf, hashToken } from '@/domains/account/session';
+import { hashPassword } from '@/domains/account/credentials';
 import { parseJson, VALIDATION_ERROR } from '@/infra/api-reply';
 import { audit, logValidation } from '@/infra/logging';
 import { resetSchema } from '@/domains/account/validators';
@@ -21,10 +21,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: { code: 'INVALID_TOKEN', message: 'Este link de recuperação é inválido ou expirou.' } }, { status: 400 });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashPassword(password);
+  const now = new Date();
   await prisma.$transaction([
     prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
-    prisma.verificationToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+    // este link e quaisquer outros pedidos de reposição pendentes deixam de valer
+    prisma.verificationToken.updateMany({ where: { userId: record.userId, type: 'PASSWORD_RESET', usedAt: null }, data: { usedAt: now } }),
     // invalida todas as sessões: troca de credenciais = revogação
     prisma.session.updateMany({ where: { userId: record.userId }, data: { expiresAt: new Date(0) } }),
   ]);

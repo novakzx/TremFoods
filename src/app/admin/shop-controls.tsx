@@ -17,13 +17,15 @@ export function ShopControls({ initialClosed, statusLabel }: { initialClosed: bo
       const r = await apiPatch('/api/admin/shop', { closed: !closed });
       if (r.ok) setClosed(!closed);
       else setErr(r.data.error?.message ?? 'Não foi possível alterar o estado.');
+    } catch {
+      setErr('Erro de ligação.');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section className="card p-5">
+    <section className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${closed ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
@@ -31,10 +33,10 @@ export function ShopControls({ initialClosed, statusLabel }: { initialClosed: bo
           </span>
           <div>
             <p className="font-display text-sm font-bold">Estado da loja</p>
-            <p className="text-xs text-muted">Atual: {statusLabel}</p>
+            <p className="text-xs text-muted">{closed ? 'Encerrada manualmente — o checkout recusa pedidos' : `Horário normal · ${statusLabel}`}</p>
           </div>
         </div>
-        <button onClick={toggle} disabled={busy} className={`btn-secondary text-xs ${closed ? '!border-danger/40 !text-danger' : ''}`}>
+        <button onClick={toggle} disabled={busy} className={`btn-secondary btn-sm ${closed ? '!border-danger/40 !text-danger' : ''}`}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : closed ? 'Reabrir loja' : 'Encerrar (férias/avaria)'}
         </button>
       </div>

@@ -54,39 +54,40 @@ body { @apply bg-paper text-ink font-sans antialiased; text-rendering: optimizeL
 
 ::selection { background: #FFD794; color: #231506; }
 
-/* ---------- componentes utilitários ---------- */
-.container-app { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
+/* ---------- componentes utilitários (visual plano: sem sombras nem animações) ---------- */
+/* Dentro de @layer components para que as classes utilitárias (pl-10, w-full…) as possam ajustar. */
+@layer components {
+  .container-app { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
 
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold
-         transition-all duration-200 focus-visible:outline focus-visible:outline-2
-         focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50
-         disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none select-none;
-}
-.btn-primary {
-  @apply btn bg-brand text-ink shadow-card hover:bg-brand-deep hover:shadow-float active:shadow-card;
-}
-.btn-secondary {
-  @apply btn border border-line bg-surface text-ink hover:border-brand/40 hover:text-brand hover:shadow-card;
-}
-.btn-ghost { @apply btn text-ink/70 hover:bg-ink/5 hover:text-ink; }
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold
+           transition-colors focus-visible:outline focus-visible:outline-2
+           focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed
+           disabled:opacity-50 select-none;
+  }
+  .btn-primary { @apply btn bg-brand text-ink hover:bg-brand-deep; }
+  .btn-secondary { @apply btn border border-line bg-surface text-ink hover:border-ink/30; }
+  .btn-ghost { @apply btn text-ink/70 hover:bg-ink/5 hover:text-ink; }
+  .btn-sm { @apply min-h-[36px] px-3.5 py-1.5 text-[13px]; }
 
-.card { @apply rounded-xl2 border border-line/70 bg-surface shadow-card transition-shadow duration-300; }
-.card-hover { @apply transition-all duration-300 hover:-translate-y-1.5 hover:border-brand/25 hover:shadow-float; }
-.input {
-  @apply w-full rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink
-         placeholder:text-muted/70 focus:border-brand/50 focus:outline-none focus:ring-2
-         focus:ring-accent/30 transition-colors;
-}
-.label { @apply mb-1.5 block text-[13px] font-medium text-ink/80; }
-.chip { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
+  .card { @apply rounded-xl2 border border-line bg-surface; }
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink
+           placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2
+           focus:ring-brand/20 transition-colors;
+  }
+  .label { @apply mb-1.5 block text-[13px] font-medium text-ink/80; }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
 
-/* animação sutil de entrada (única do site, 200ms) */
-.fade-up { animation: fadeUp 0.25s ease-out both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .alert-error { @apply rounded-xl bg-danger/10 px-4 py-3 text-[13px] font-medium text-danger; }
+  .alert-info { @apply rounded-xl bg-brand-soft px-4 py-3 text-[13px] font-medium text-ink/80; }
+
+  /* listas que deslizam na horizontal sem barra visível (categorias) */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .fade-up { animation: none; }
-  .btn, .card, .card-hover { transition: none; }
+  .btn { transition: none; }
 }

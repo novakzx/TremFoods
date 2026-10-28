@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireUser, verifyCsrf, hashToken, secrets, cookieOptions } from '@/domains/account/session';
+import { requireUser, verifyCsrf, hashToken, secrets, cookieOptions, sessionTokenFrom } from '@/domains/account/session';
 import { audit } from '@/infra/logging';
 import { prisma } from '@/infra/db';
 
@@ -19,8 +19,8 @@ function deviceLabel(ua: string | null) {
 export async function GET(req: Request) {
   const { session, user } = await requireUser();
   if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Sessão inválida.' } }, { status: 401 });
-  const rows = await prisma.session.findMany({ where: { userId: user.id }, orderBy: { lastSeen: 'desc' } });
-  const currentHash = session ? hashToken(req.headers.get('cookie')?.match(new RegExp(`(?:^|; )${secrets.SESSION_COOKIE}=([^;]+)`))?.[1] ?? '') : '';
+  const rows = await prisma.session.findMany({ where: { userId: user.id, expiresAt: { gt: new Date() } }, orderBy: { lastSeen: 'desc' }, take: 50 });
+  const currentHash = session?.tokenHash ?? '';
   return NextResponse.json({
     sessions: rows.map((s) => ({
       id: s.id,
@@ -40,7 +40,8 @@ export async function POST(req: Request) {
 
   // "Sair de todos os dispositivos" — o corpo { all: true } revoga tudo (incl. atual)
   const body = (await req.json().catch(() => ({}))) as { all?: boolean; exceptCurrent?: boolean };
-  const currentHash = session ? hashToken(req.headers.get('cookie')?.match(new RegExp(`(?:^|; )${secrets.SESSION_COOKIE}=([^;]+)`))?.[1] ?? '') : undefined;
+  const token = sessionTokenFrom(req);
+  const currentHash = token ? hashToken(token) : session?.tokenHash;
   if (body.all) {
     await prisma.session.updateMany({ where: { userId: user.id }, data: { expiresAt: new Date(0) } });
   } else {

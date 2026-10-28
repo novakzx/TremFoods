@@ -48,7 +48,8 @@ export function metricWindows(now = new Date()): MetricWindow[] {
   const parts = lisbonParts(now);
   const dayStart = lisbonToUtc(parts.year, parts.month, parts.day);
   // Semana começa à segunda-feira (convenção portuguesa).
-  const mondayOffset = (now.getDay() + 6) % 7;
+  const lisbonWeekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+  const mondayOffset = (lisbonWeekday + 6) % 7;
   const weekStart = lisbonToUtc(parts.year, parts.month, parts.day - mondayOffset);
   const monthStart = lisbonToUtc(parts.year, parts.month, 1);
 

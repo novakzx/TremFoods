@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, ChevronDown, Bike, Store, Banknote, Landmark, CreditCard, Smartphone, Phone, MapPin, StickyNote } from 'lucide-react';
 import type { MetricSummary, DailyRevenue } from '@/domains/admin/metrics';
-import { LIFECYCLE } from '@/domains/orders/order-status';
+import { LIFECYCLE } from '@/domains/orders/lifecycle';
 import { paymentMethodLabel } from '@/domains/payment/methods';
 import { eur, dateTimePT } from '@/domains/shared-kernel/money';
 
@@ -59,7 +59,7 @@ export function MetricsDashboard({ summaries, series, orders, monthLabel }: {
     <div className="mt-6 space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">Atualizado agora · dados no fuso da loja (Lisboa)</p>
-        <button onClick={refresh} className="btn-ghost text-xs">
+        <button onClick={refresh} className="btn-ghost btn-sm">
           <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
         </button>
       </div>

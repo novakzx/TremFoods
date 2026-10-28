@@ -13,7 +13,11 @@ export function pushPublicKey(): string | null {
 const ENDPOINT_STORAGE = 'tf-push-endpoint';
 
 export function savedPushEndpoint(): string | null {
-  return localStorage.getItem(ENDPOINT_STORAGE);
+  try {
+    return localStorage.getItem(ENDPOINT_STORAGE);
+  } catch {
+    return null;
+  }
 }
 
 export async function subscribeToOrder(orderNumber: string, code?: string) {

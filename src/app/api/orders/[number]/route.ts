@@ -4,6 +4,7 @@ import { getForUser } from '@/domains/orders/order-queries';
 import { LIFECYCLE } from '@/domains/orders/order-status';
 import { paymentMethodLabel } from '@/domains/payment/methods';
 import { eur } from '@/domains/shared-kernel/money';
+import { courierPositionOf } from '@/domains/delivery/courier';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,5 +34,6 @@ export async function GET(_req: Request, { params }: { params: { number: string 
     items: order.items.map((i) => ({ name: i.nameSnapshot, qty: i.qty, priceCents: i.priceCents, options: Array.isArray(i.optionsJson) ? i.optionsJson : [] })),
     events: order.events.map((e) => ({ status: e.status, label: LIFECYCLE[e.status]?.label ?? e.status, note: e.note, at: e.createdAt })),
     createdAt: order.createdAt,
+    courier: courierPositionOf(order),
   });
 }

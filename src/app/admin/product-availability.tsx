@@ -16,22 +16,28 @@ type ProductRow = {
 export function ProductAvailability({ initial }: { initial: ProductRow[] }) {
   const [products, setProducts] = useState(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const toggle = async (p: ProductRow) => {
     if (busyId) return;
     setBusyId(p.id);
+    setError(null);
     try {
-      const r = await apiPatch<{ product: { available: boolean } }>(`/api/admin/products/${p.id}`, { available: !p.available });
+      const r = await apiPatch(`/api/admin/products/${p.id}`, { available: !p.available });
       if (r.ok) {
-        setProducts((list) => list.map((x) => (x.id === p.id ? { ...x, available: r.data.product.available } : x)));
+        setProducts((list) => list.map((x) => (x.id === p.id ? { ...x, available: !p.available } : x)));
+      } else {
+        setError(r.data.error?.message ?? 'Não foi possível guardar.');
       }
+    } catch {
+      setError('Erro de ligação.');
     } finally {
       setBusyId(null);
     }
   };
 
   return (
-    <section className="card p-5">
+    <section className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-display text-sm font-bold">Disponibilidade do cardápio</p>
@@ -39,7 +45,8 @@ export function ProductAvailability({ initial }: { initial: ProductRow[] }) {
         </div>
         <span className="chip bg-ink/5 text-xs">{products.filter((p) => p.available).length}/{products.length} disponíveis</span>
       </div>
-      <ul className="mt-4 divide-y divide-line">
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
+      <ul className="mt-3 max-h-[420px] divide-y divide-line overflow-y-auto">
         {products.map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
             <div className="min-w-0">

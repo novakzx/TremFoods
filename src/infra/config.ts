@@ -1,12 +1,22 @@
 import { z } from 'zod';
 
-// Validação central das variáveis de ambiente com fallbacks seguros para build e runtime.
+export const isProd = process.env.NODE_ENV === 'production';
+
+// Validação central das variáveis de ambiente. Nenhum segredo tem valor por
+// omissão: o que faltar fica vazio e a funcionalidade correspondente desliga-se.
 const schema = z.object({
-  DATABASE_URL: z.string().min(1).default('postgresql://postgres:postgres@localhost:5432/tremfood'),
-  AUTH_SECRET: z.string().min(1).default('trem-food-secret-fallback-key-32-chars-minimum-length-prod'),
-  APP_URL: z.string().default(
-    process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://tremfood.pt')
-  ),
+  DATABASE_URL: z.string().optional().default(''),
+  APP_URL: z
+    .string()
+    .default(
+      process.env.APP_URL ||
+        (process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : isProd
+            ? 'https://tremfood.pt'
+            : 'http://localhost:3000'),
+    )
+    .transform((v) => v.replace(/\/+$/, '')),
   SMTP_HOST: z.string().optional().default(''),
   SMTP_PORT: z.coerce.number().optional().default(587),
   SMTP_USER: z.string().optional().default(''),
@@ -28,8 +38,11 @@ if (!parsed.success && process.env.NODE_ENV === 'development') {
 }
 
 export const env = parsed.success ? parsed.data : schema.parse({});
-export const isProd = process.env.NODE_ENV === 'production';
 
-/** SMTP configurado? Sem SMTP os e-mails não saem — útil para saber se o link de
- *  verificação/reposição pode ser devolvido na resposta (apenas dev/testes). */
+/** SMTP configurado? Sem SMTP os e-mails não saem. */
 export const mailConfigured = Boolean(env.SMTP_HOST);
+
+/** Links de verificação/reposição na resposta da API: só em desenvolvimento e
+ *  sem SMTP. Em produção nunca — senão qualquer pessoa repunha a palavra-passe
+ *  de qualquer conta (incluindo a do administrador). */
+export const exposeDevLinks = !mailConfigured && !isProd;

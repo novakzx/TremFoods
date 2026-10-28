@@ -34,25 +34,37 @@ export async function beginPayment(opts: {
     throw Object.assign(new Error('Pagamentos por cartão indisponíveis neste momento. Tente dinheiro na entrega.'), { status: 503, code: 'STRIPE_NOT_CONFIGURED' });
   }
 
-  const successUrl = `${env.APP_URL}/pedidos/${opts.orderNumber}?stripe=success`;
-  const cancelUrl = `${env.APP_URL}/pedidos/${opts.orderNumber}?stripe=cancelled`;
+  const successUrl = `${env.APP_URL}/pedido/${opts.orderNumber}?stripe=success`;
+  const cancelUrl = `${env.APP_URL}/pedido/${opts.orderNumber}?stripe=cancelled`;
+  // O webhook identifica o pedido por esta metadata (na sessão e no PaymentIntent).
+  const metadata = { orderNumber: opts.orderNumber };
 
   if (opts.method === 'MULTIBANCO') {
-    const intent = await s.paymentIntents.create({
-      amount: opts.amountCents,
-      currency: 'eur',
-      payment_method_types: ['multibanco'],
-      description: `Pedido ${opts.orderNumber}`,
-      metadata: { orderRef: opts.orderNumber },
-      receipt_email: opts.customerEmail ?? undefined,
-    });
+    // A referência só existe depois de confirmar o PaymentIntent com um método
+    // multibanco (o Stripe exige o e-mail do cliente nos dados de faturação).
+    const intent = await s.paymentIntents.create(
+      {
+        amount: opts.amountCents,
+        currency: 'eur',
+        payment_method_types: ['multibanco'],
+        payment_method_data: {
+          type: 'multibanco',
+          billing_details: { email: opts.customerEmail ?? undefined, name: opts.customerName },
+        } as unknown as Stripe.PaymentIntentCreateParams.PaymentMethodData,
+        confirm: true,
+        description: `Pedido ${opts.orderNumber}`,
+        metadata,
+        receipt_email: opts.customerEmail ?? undefined,
+      },
+      { idempotencyKey: `mb-${opts.orderId}-${opts.amountCents}` },
+    );
     const display = intent.next_action?.multibanco_display_details;
     if (!display) {
       throw Object.assign(new Error('Não foi possível gerar a referência Multibanco.'), { status: 502 });
     }
     const amountLabel = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(opts.amountCents / 100);
     const expiresLabel = display.expires_at
-      ? new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(display.expires_at * 1000))
+      ? new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Lisbon' }).format(new Date(display.expires_at * 1000))
       : '—';
     return {
       type: 'multibanco',
@@ -80,7 +92,8 @@ export async function beginPayment(opts: {
     success_url: successUrl,
     cancel_url: cancelUrl,
     customer_email: opts.customerEmail ?? undefined,
-    metadata: { orderNumber: opts.orderNumber },
+    metadata,
+    payment_intent_data: { metadata },
   });
   if (!session.url) throw Object.assign(new Error('Falha ao criar sessão de pagamento.'), { status: 502 });
   return { type: 'stripe', url: session.url };
