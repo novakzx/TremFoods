@@ -5,6 +5,8 @@ import { Loader2 } from 'lucide-react';
 import { StatusTimeline } from '@/components/status-timeline';
 import { apiGet } from '@/infra/http-client';
 import { PushToggle } from '@/domains/notifications/push-toggle';
+import { LiveCourierMap } from '@/components/live-courier-map';
+import type { CourierPosition } from '@/domains/delivery/courier';
 
 type TrackData = {
   number: string;
@@ -12,10 +14,13 @@ type TrackData = {
   statusLabel: string;
   deliveryMethod: 'DELIVERY' | 'PICKUP';
   estimatedMinutes: number;
+  expectedAt: string | null;
+  courier: CourierPosition;
   events: { status: string; label: string; at: string }[];
 };
 
 const FINAL = new Set(['DELIVERED', 'CANCELLED']);
+const HOUR = new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' });
 
 export function TrackingClient() {
   const [number, setNumber] = useState('');
@@ -121,12 +126,16 @@ export function TrackingClient() {
             <div>
               <p className="font-display text-lg font-bold">{data.number}</p>
               <p className="text-[13px] text-muted">
-                {data.deliveryMethod === 'DELIVERY' ? `Entrega ao domicílio · ±${data.estimatedMinutes} min` : `Levantamento na loja · pronto em ±${data.estimatedMinutes} min`}
+                {data.deliveryMethod === 'DELIVERY' ? 'Entrega ao domicílio' : 'Levantamento na loja'}
+                {data.expectedAt && !FINAL.has(data.status) && ` · previsto ~${HOUR.format(new Date(data.expectedAt))}`}
               </p>
             </div>
             <span className={`chip px-3 py-1 text-sm font-semibold ${chip}`}>{data.statusLabel}</span>
           </div>
           <StatusTimeline status={data.status} deliveryMethod={data.deliveryMethod} events={data.events} />
+          {data.status === 'OUT_FOR_DELIVERY' && data.deliveryMethod === 'DELIVERY' && (
+            <LiveCourierMap pollUrl={`/api/tracking?number=${encodeURIComponent(data.number)}&code=${encodeURIComponent(code.trim())}`} initial={data.courier} />
+          )}
           {!FINAL.has(data.status) && <PushToggle orderNumber={data.number} code={code.trim()} />}
           <p className="mt-4 text-[13px] text-muted">Precisa de ajuda? Ligue <a href="tel:+351964994787" className="font-semibold text-ink">964 994 787</a>.</p>
         </section>

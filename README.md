@@ -19,6 +19,15 @@ Pronto para deploy na Vercel.
 - Contas: registo, verificação de e-mail, início de sessão, recuperação de palavra-passe,
   gestão de sessões (terminar outras / todas)
 - Painel de administração com atualização de estados (refletida no cliente em segundos)
+- Ecrã da cozinha (`/admin/cozinha`) para tablet: colunas Novos → Em preparação → A caminho,
+  cronómetro por pedido (verde/amarelo/vermelho face ao tempo previsto), som a cada pedido novo
+  (repete até alguém o começar), ecrã sempre ligado e botão "Cozinha cheia" (+10/+20/+30 min)
+- Tempo estimado dinâmico: conforme a fila da cozinha (`etaFor` em `delivery-policy.ts`),
+  mostrado na faixa de estado, no checkout e na página do pedido ("previsto ~21:10")
+- Estafeta em tempo real: ao sair para entrega, o cartão da cozinha mostra um QR/link secreto
+  (`/estafeta/<token>`, sem conta). O estafeta partilha a localização e confirma a entrega no
+  telemóvel; o cliente vê-o num mapa (Leaflet + OpenStreetMap) na página do pedido e no
+  acompanhamento. Link e posição são apagados quando a entrega termina
 - Gestão completa do cardápio no admin: produtos (foto por URL, descrição, preço, flags, disponibilidade),
   categorias e adicionais por grupos (obrigatório/múltiplo, opções com preço extra; validados no servidor)
 - PWA instalável (manifest + service worker com cache e atualização automática), SEO completo
@@ -57,6 +66,8 @@ npm run build && npm start     # Vercel: sem passos extra (build automático)
   alteração destrutiva falha em vez de apagar dados) e corre o seed em modo seguro: só cria
   o que falta, nunca reescreve preços, fotos, adicionais ou produtos editados no painel.
   Para repor o cardápio exatamente como está em `prisma/seed.ts`: `npm run db:seed -- --overwrite`.
+- Os mapas usam os tiles públicos do OpenStreetMap (sem chave). Com muito tráfego, troque o
+  URL em `src/components/live-courier-map.tsx` por um fornecedor com chave (MapTiler, Mapbox…).
 - Rate limiting corre em memória (mono-instância). Em múltiplas instâncias, ligue o
   rate limiting a um Redis partilhado (ver `src/infra/throttle.ts`).
 - Configure o webhook do Stripe para `/api/payments/stripe/webhook` com os eventos

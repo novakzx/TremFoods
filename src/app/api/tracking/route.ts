@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/infra/db';
 import { LIFECYCLE } from '@/domains/orders/order-status';
 import { phoneMatches, recordTrackingFailure, trackingLocked } from '@/domains/orders/tracking-guard';
+import { courierPositionOf } from '@/domains/delivery/courier';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,8 @@ export async function GET(req: Request) {
     statusLabel: LIFECYCLE[order.status]?.label ?? order.status,
     deliveryMethod: order.deliveryMethod,
     estimatedMinutes: order.etaMinutes,
+    expectedAt: order.etaMinutes ? new Date(order.createdAt.getTime() + order.etaMinutes * 60_000).toISOString() : null,
+    courier: courierPositionOf(order),
     events: order.events.map((e) => ({ status: e.status, label: LIFECYCLE[e.status]?.label ?? e.status, at: e.createdAt })),
   });
 }

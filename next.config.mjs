@@ -30,7 +30,8 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+          // geolocalização só para o próprio site (página do estafeta)
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'X-XSS-Protection', value: '0' },
           ...(isProd
@@ -43,7 +44,7 @@ const nextConfig = {
       },
       {
         // Páginas com dados pessoais nunca ficam em caches partilhadas.
-        source: '/(conta|pedidos|pedido|admin|checkout|carrinho)(.*)',
+        source: '/(conta|pedidos|pedido|admin|checkout|carrinho|estafeta)(.*)',
         headers: [{ key: 'Cache-Control', value: 'private, no-store' }],
       },
       {

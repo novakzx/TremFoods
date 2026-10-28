@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { OPENING_HOURS_LABEL } from '@/domains/shop/hours';
 import { apiGet } from '@/infra/http-client';
 
-type ShopStatus = { open: boolean; manualClosed: boolean };
+type ShopStatus = { open: boolean; manualClosed: boolean; eta: { delivery: number; pickup: number } | null };
 
 /**
  * Faixa fina com o estado real da loja. O servidor decide (hora de Lisboa +
@@ -18,11 +18,11 @@ export function ShopStatusBar() {
     const check = () =>
       apiGet<ShopStatus>('/api/shop-status')
         .then((r) => {
-          if (r.ok && !cancelled) setStatus({ open: r.data.open, manualClosed: r.data.manualClosed });
+          if (r.ok && !cancelled) setStatus({ open: r.data.open, manualClosed: r.data.manualClosed, eta: r.data.eta ?? null });
         })
         .catch(() => {});
     check();
-    const t = setInterval(check, 5 * 60_000);
+    const t = setInterval(check, 2 * 60_000);
     return () => {
       cancelled = true;
       clearInterval(t);
@@ -31,7 +31,9 @@ export function ShopStatusBar() {
 
   if (!status) return null;
   const label = status.open
-    ? `Aberto agora · ${OPENING_HOURS_LABEL}`
+    ? status.eta
+      ? `Aberto agora · entrega ~${status.eta.delivery} min · levantamento ~${status.eta.pickup} min`
+      : `Aberto agora · ${OPENING_HOURS_LABEL}`
     : status.manualClosed
       ? 'Encerrado temporariamente — não estamos a aceitar pedidos'
       : 'Fechado agora · abrimos às 06h30';

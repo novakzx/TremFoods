@@ -131,6 +131,12 @@ model Order {
   addressPostal   String?
   note            String?
   etaMinutes      Int?
+  // Estafeta em tempo real: link secreto (só deste pedido) e última posição enviada.
+  courierToken    String?
+  courierLat      Float?
+  courierLng      Float?
+  courierAccuracy Float?
+  courierAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -140,6 +146,7 @@ model Order {
 
   @@index([userId, createdAt])
   @@index([status])
+  @@index([courierToken])
 }
 
 model OrderItem {

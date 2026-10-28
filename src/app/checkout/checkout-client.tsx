@@ -11,7 +11,7 @@ type CartItem = { id: string; qty: number; unitPriceCents: number; options: { na
 type CartData = { count: number; subtotalCents: number; items: CartItem[] };
 type Me = { user: { id: string; name: string; email: string; emailVerified: boolean } | null };
 type Payment = { type: 'none' } | { type: 'stripe'; url: string } | { type: 'multibanco'; entity: string; reference: string; amountLabel: string; expiresLabel: string };
-type OrderResult = { number: string; totalLabel: string; paymentMethod: string; paymentLabel: string; etaMinutes: number };
+type OrderResult = { number: string; totalLabel: string; paymentMethod: string; paymentLabel: string; etaMinutes: number; expectedAt: string };
 type Done = { order: OrderResult; payment: Payment; paymentFallback: boolean };
 
 const PAYMENTS = [
@@ -34,6 +34,7 @@ export function CheckoutClient() {
   const [form, setForm] = useState({ customerName: '', customerPhone: '', customerEmail: '', addressStreet: '', addressNumber: '', addressCity: 'Almada', addressPostal: '', note: '' });
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
   const [shopClosed, setShopClosed] = useState<'' | 'HOURS' | 'MANUAL'>('');
+  const [eta, setEta] = useState({ delivery: DELIVERY_MINUTES, pickup: PICKUP_MINUTES });
 
   useEffect(() => {
     (async () => {
@@ -41,9 +42,10 @@ export function CheckoutClient() {
         const [c, m, st] = await Promise.all([
           apiGet<CartData>('/api/cart'),
           apiGet<Me>('/api/auth/me'),
-          apiGet<{ open: boolean; manualClosed: boolean }>('/api/shop-status'),
+          apiGet<{ open: boolean; manualClosed: boolean; eta: { delivery: number; pickup: number } | null }>('/api/shop-status'),
         ]);
         if (st.ok && !st.data.open) setShopClosed(st.data.manualClosed ? 'MANUAL' : 'HOURS');
+        if (st.ok && st.data.eta) setEta(st.data.eta);
         if (c.ok) setCart(c.data);
         else setLoadError(true);
         const user = m.ok ? m.data.user : null;
@@ -112,7 +114,8 @@ export function CheckoutClient() {
           <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
           <h1 className="mt-3 font-display text-2xl font-extrabold tracking-tight">Pedido {done.order.number} recebido</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Enviámos a confirmação por e-mail. Tempo estimado: {done.order.etaMinutes} minutos.
+            Enviámos a confirmação por e-mail. Tempo estimado: {done.order.etaMinutes} minutos
+            (por volta das {new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' }).format(new Date(done.order.expectedAt))}).
           </p>
 
           {done.paymentFallback && (
@@ -207,8 +210,8 @@ export function CheckoutClient() {
             <legend className="mb-2 font-semibold">Como quer receber?</legend>
             <div className="grid gap-2 sm:grid-cols-2">
               {([
-                { id: 'DELIVERY', label: 'Entrega', hint: `±${DELIVERY_MINUTES} min · ${deliveryFeeFor(cart.subtotalCents, 'DELIVERY') === 0 ? 'grátis' : eur(deliveryFeeFor(cart.subtotalCents, 'DELIVERY'))}`, icon: Bike },
-                { id: 'PICKUP', label: 'Levantamento na loja', hint: `pronto em ${PICKUP_MINUTES} min · sem taxa`, icon: Store },
+                { id: 'DELIVERY', label: 'Entrega', hint: `~${eta.delivery} min · ${deliveryFeeFor(cart.subtotalCents, 'DELIVERY') === 0 ? 'grátis' : eur(deliveryFeeFor(cart.subtotalCents, 'DELIVERY'))}`, icon: Bike },
+                { id: 'PICKUP', label: 'Levantamento na loja', hint: `pronto em ~${eta.pickup} min · sem taxa`, icon: Store },
               ] as const).map((o) => (
                 <button type="button" key={o.id} role="radio" aria-checked={deliveryMethod === o.id} onClick={() => setDeliveryMethod(o.id)} className={option(deliveryMethod === o.id)}>
                   <o.icon className="h-5 w-5 flex-none text-ink/70" />

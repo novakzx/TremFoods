@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { StatusTimeline } from '@/components/status-timeline';
 import { OrderTracker } from './order-tracker';
+import { LiveCourierMap } from '@/components/live-courier-map';
+import { courierPositionOf } from '@/domains/delivery/courier';
 import { PushToggle } from '@/domains/notifications/push-toggle';
 import { requireUser } from '@/domains/account/session';
 import { statusLabel } from '@/domains/orders/order-status';
@@ -19,6 +21,8 @@ export async function generateMetadata({ params }: { params: { number: string } 
     robots: { index: false, follow: false },
   };
 }
+
+const HOUR = new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' });
 
 const PAYMENT_STATUS: Record<string, { label: string; className: string }> = {
   PAID: { label: 'Pago', className: 'text-success' },
@@ -73,6 +77,9 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <OrderTracker number={order.number} status={order.status} paymentStatus={order.paymentStatus} />
         </div>
         <StatusTimeline status={order.status} deliveryMethod={delivery} events={order.events.map((e) => ({ status: e.status, at: e.createdAt }))} />
+        {order.status === 'OUT_FOR_DELIVERY' && delivery === 'DELIVERY' && (
+          <LiveCourierMap pollUrl={`/api/orders/${encodeURIComponent(order.number)}`} initial={courierPositionOf(order)} />
+        )}
         {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && <PushToggle orderNumber={order.number} />}
       </section>
 
@@ -112,8 +119,10 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               </dd>
             </div>
             <div>
-              <dt className="text-muted">Tempo estimado</dt>
-              <dd>{order.etaMinutes ?? '—'} minutos</dd>
+              <dt className="text-muted">{delivery === 'DELIVERY' ? 'Entrega prevista' : 'Pronto por volta das'}</dt>
+              <dd>
+                {order.etaMinutes ? `${HOUR.format(new Date(order.createdAt.getTime() + order.etaMinutes * 60_000))} (${order.etaMinutes} min)` : '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-muted">Pagamento</dt>

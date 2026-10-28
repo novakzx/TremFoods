@@ -14,7 +14,8 @@ import { checkoutSchema } from '@/domains/orders/validators';
 import { unitPriceCents } from '@/domains/menu/options';
 import { orderBlockReason } from '@/domains/shop/shop-policy';
 import { eur } from '@/domains/shared-kernel/money';
-import { DELIVERY_MINUTES, PICKUP_MINUTES, deliveryFeeFor } from '@/domains/delivery/delivery-policy';
+import { deliveryFeeFor } from '@/domains/delivery/delivery-policy';
+import { currentEta } from '@/domains/delivery/eta';
 import { paymentMethodLabel } from '@/domains/payment/methods';
 import { prisma } from '@/infra/db';
 
@@ -84,7 +85,9 @@ export async function POST(req: Request) {
   const deliveryFeeCents = deliveryFeeFor(subtotalCents, data.deliveryMethod);
   const totalCents = subtotalCents + deliveryFeeCents;
   const number = await nextOrderNumber();
-  const etaMinutes = data.deliveryMethod === 'DELIVERY' ? DELIVERY_MINUTES : PICKUP_MINUTES;
+  // Previsão conforme a fila da cozinha neste momento (e o extra que a cozinha definiu).
+  const eta = await currentEta();
+  const etaMinutes = data.deliveryMethod === 'DELIVERY' ? eta.delivery : eta.pickup;
 
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
@@ -173,6 +176,7 @@ export async function POST(req: Request) {
       paymentLabel: paymentMethodLabel(orderView!.paymentMethod),
       deliveryMethod: orderView!.deliveryMethod,
       etaMinutes: orderView!.etaMinutes,
+      expectedAt: new Date(orderView!.createdAt.getTime() + (orderView!.etaMinutes ?? 0) * 60_000).toISOString(),
       paymentMeta: orderView!.paymentMeta,
     },
     payment,

@@ -1,6 +1,7 @@
 import { prisma } from '@/infra/db';
 import { safeAdvanceStatus, statusLabel, LIFECYCLE } from '@/domains/orders/order-status';
 import { notifyOrderStatus } from '@/domains/notifications/push-server';
+import { courierPath } from '@/domains/delivery/courier';
 
 // Lista de trabalho do balcão: até 100 pedidos recentes, com filtro opcional por estado.
 export function listOrders(status?: string) {
@@ -55,6 +56,33 @@ export function toAdminOrderView(o: ListedOrder): AdminOrderView {
       options: Array.isArray(i.optionsJson) ? (i.optionsJson as { name: string }[]).map((x) => x.name) : [],
     })),
     createdAt: o.createdAt.toISOString(),
+  };
+}
+
+// Ecrã da cozinha: só pedidos em curso, do mais antigo para o mais recente.
+export function listKitchenOrders() {
+  return prisma.order.findMany({
+    where: { status: { in: ['RECEIVED', 'PREPARING', 'OUT_FOR_DELIVERY'] } },
+    orderBy: { createdAt: 'asc' },
+    take: 60,
+    include: { items: true, user: { select: { email: true } }, events: { orderBy: { createdAt: 'desc' }, take: 1 } },
+  });
+}
+
+export type KitchenOrderView = AdminOrderView & {
+  etaMinutes: number | null;
+  statusSince: string;
+  courierPath: string | null;
+  courierSeenAt: string | null;
+};
+
+export function toKitchenOrderView(o: Awaited<ReturnType<typeof listKitchenOrders>>[number]): KitchenOrderView {
+  return {
+    ...toAdminOrderView(o),
+    etaMinutes: o.etaMinutes,
+    statusSince: (o.events[0]?.createdAt ?? o.createdAt).toISOString(),
+    courierPath: o.status === 'OUT_FOR_DELIVERY' && o.courierToken ? courierPath(o.courierToken) : null,
+    courierSeenAt: o.status === 'OUT_FOR_DELIVERY' && o.courierAt ? o.courierAt.toISOString() : null,
   };
 }
 
