@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle2, XCircle, Mail } from 'lucide-react';
@@ -13,9 +13,14 @@ function VerifyForm() {
   const [state, setState] = useState<'loading' | 'ok' | 'fail' | 'idle'>(token ? 'loading' : 'idle');
   const [busy, setBusy] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState<{ message: string; login: boolean } | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
-    if (!token) return;
+    // O token é de uso único: nunca o enviar duas vezes (React StrictMode
+    // corre os efeitos duas vezes em desenvolvimento).
+    if (!token || started.current) return;
+    started.current = true;
     apiGet(`/api/auth/verify?token=${encodeURIComponent(token)}`)
       .then((r) => setState(r.ok ? 'ok' : 'fail'))
       .catch(() => setState('fail'));
@@ -24,13 +29,32 @@ function VerifyForm() {
   const resend = async () => {
     if (busy) return;
     setBusy(true);
+    setResendError(null);
     try {
-      await apiPost('/api/auth/resend-verification', { email });
-      setResent(true);
+      const r = await apiPost<{ alreadyVerified?: boolean }>('/api/auth/resend-verification');
+      if (r.ok && r.data.alreadyVerified) setState('ok');
+      else if (r.ok) setResent(true);
+      else setResendError({ message: r.data.error?.message ?? 'Não foi possível reenviar.', login: r.status === 401 });
+    } catch {
+      setResendError({ message: 'Sem ligação. Tente novamente.', login: false });
     } finally {
       setBusy(false);
     }
   };
+
+  const resendButton = (label: string) => (
+    <>
+      <button onClick={resend} disabled={busy || resent} className="btn-secondary mx-auto mt-5">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} {resent ? 'E-mail enviado' : label}
+      </button>
+      {resendError && (
+        <p role="alert" className="alert-error mt-3">
+          {resendError.message}{' '}
+          {resendError.login && <Link href="/login?next=/verificar" className="font-bold underline">Entrar</Link>}
+        </p>
+      )}
+    </>
+  );
 
   if (state === 'loading') {
     return (
@@ -43,7 +67,7 @@ function VerifyForm() {
 
   if (state === 'ok') {
     return (
-      <div className="rounded-2xl bg-success/10 p-6 text-center">
+      <div className="text-center">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success">
           <CheckCircle2 className="h-7 w-7" />
         </span>
@@ -56,21 +80,19 @@ function VerifyForm() {
 
   if (state === 'fail') {
     return (
-      <div className="rounded-2xl bg-danger/10 p-6 text-center">
+      <div className="text-center">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/15 text-danger">
           <XCircle className="h-7 w-7" />
         </span>
         <p className="mt-4 font-display text-lg font-bold text-danger">Link inválido ou expirado</p>
         <p className="mt-2 text-sm leading-relaxed text-muted">Peça um novo e-mail de confirmação.</p>
-        <button onClick={resend} disabled={busy} className="btn-secondary mx-auto mt-5">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} {resent ? 'E-mail enviado' : 'Reenviar confirmação'}
-        </button>
+        {resendButton('Reenviar confirmação')}
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-paper p-6 text-center">
+    <div className="text-center">
       <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink/5 text-ink/40">
         <Mail className="h-6 w-6" />
       </span>
@@ -78,9 +100,7 @@ function VerifyForm() {
       <p className="mt-2 text-sm leading-relaxed text-muted">
         {email ? <>Enviámos um link para <span className="font-semibold text-ink">{email}</span>.</> : 'Verifique a sua caixa de entrada (e o spam).'}
       </p>
-      <button onClick={resend} disabled={busy} className="btn-secondary mx-auto mt-5">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} {resent ? 'E-mail enviado' : 'Reenviar e-mail de confirmação'}
-      </button>
+      {resendButton('Reenviar e-mail de confirmação')}
     </div>
   );
 }

@@ -3,8 +3,9 @@ import { randomBytes, createHash } from 'crypto';
 import { verifyCsrf } from '@/domains/account/session';
 import { sendMail, resetPasswordHtml } from '@/domains/comms/mailer';
 import { parseJson, VALIDATION_ERROR } from '@/infra/api-reply';
-import { mailConfigured } from '@/infra/config';
+import { env, exposeDevLinks } from '@/infra/config';
 import { audit, logValidation } from '@/infra/logging';
+import { rateLimit } from '@/infra/throttle';
 import { forgotSchema } from '@/domains/account/validators';
 import { prisma } from '@/infra/db';
 
@@ -18,8 +19,10 @@ export async function POST(req: Request) {
   }
   const { email } = parsed.data;
 
-  // Resposta uniforme: não revela se o e-mail existe.
-  const user = await prisma.user.findUnique({ where: { email } });
+  // Resposta uniforme: não revela se o e-mail existe. No máximo 3 e-mails de
+  // reposição por conta e por hora (evita encher a caixa de correio da vítima).
+  const perEmail = await rateLimit(`forgot:${email}`, 3, 60 * 60 * 1000);
+  const user = perEmail.allowed ? await prisma.user.findUnique({ where: { email } }) : null;
   let devResetLink: string | undefined;
   if (user) {
     const token = randomBytes(32).toString('base64url');
@@ -31,13 +34,13 @@ export async function POST(req: Request) {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
-    const link = `${process.env.APP_URL ?? 'http://localhost:3000'}/redefinir-password?token=${token}`;
+    const link = `${env.APP_URL}/redefinir-password?token=${token}`;
     await sendMail(email, 'Redefinir palavra-passe', resetPasswordHtml(link), `Redefinir palavra-passe: ${link}`);
     await audit('auth.forgot', req, user.id, email);
     devResetLink = link;
   }
   return NextResponse.json({
     ok: true,
-    ...(!mailConfigured && user ? { devResetLink } : {}),
+    ...(exposeDevLinks && devResetLink ? { devResetLink } : {}),
   });
 }

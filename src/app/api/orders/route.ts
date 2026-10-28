@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { requireUser, verifyCsrf, secrets } from '@/domains/account/session';
-import { loadBasket, summarizeBasket, clearBasket } from '@/domains/basket/basket-store';
+import { loadBasket, summarizeBasket, clearBasket, revalidateBasket } from '@/domains/basket/basket-store';
 import { sendMail, orderConfirmationHtml } from '@/domains/comms/mailer';
 import { beginPayment } from '@/domains/payment/gateway';
 import { parseJson, VALIDATION_ERROR } from '@/infra/api-reply';
@@ -70,15 +70,16 @@ export async function POST(req: Request) {
   }
 
   // O carrinho vem SEMPRE do servidor — o total nunca é aceite do cliente.
-  const cart = await loadBasket(user.id, null);
-  const { subtotalCents } = summarizeBasket(cart);
-  if (!cart.items.length) {
+  const stored = await loadBasket(user.id, null);
+  if (!stored.items.length) {
     return NextResponse.json({ error: { code: 'EMPTY_CART', message: 'O seu carrinho está vazio.' } }, { status: 400 });
   }
-  const availableItems = cart.items.filter((i) => i.product.available);
-  if (availableItems.length !== cart.items.length) {
-    return NextResponse.json({ error: { code: 'UNAVAILABLE_ITEM', message: 'Um dos artigos do carrinho já não está disponível. Atualize o carrinho.' } }, { status: 409 });
+  const checked = await revalidateBasket(stored);
+  if (!checked.ok) {
+    return NextResponse.json({ error: { code: 'UNAVAILABLE_ITEM', message: `"${checked.productName}" já não está disponível com as opções escolhidas. Atualize o carrinho.` } }, { status: 409 });
   }
+  const cart = checked.cart;
+  const { subtotalCents } = summarizeBasket(cart);
 
   const deliveryFeeCents = deliveryFeeFor(subtotalCents, data.deliveryMethod);
   const totalCents = subtotalCents + deliveryFeeCents;
@@ -124,14 +125,12 @@ export async function POST(req: Request) {
     return created;
   });
 
-  void clearBasket(user.id, null);
   await audit('order.created', req, user.id, user.email, { orderId: order.id, number, totalCents });
 
   // Pagamento
   let payment: { type: 'none' } | Awaited<ReturnType<typeof beginPayment>> = { type: 'none' };
-  if (data.paymentMethod === 'CASH') {
-    await prisma.order.update({ where: { id: order.id }, data: { paymentStatus: 'PENDING' } });
-  } else {
+  let paymentFallback = false;
+  if (data.paymentMethod !== 'CASH') {
     try {
       payment = await beginPayment({
         orderId: order.id,
@@ -150,8 +149,17 @@ export async function POST(req: Request) {
       // Pagamento indisponível: pedido fica em dinheiro pendente (o cliente é informado na UI).
       await prisma.order.update({ where: { id: order.id }, data: { paymentMethod: 'CASH' } });
       payment = { type: 'none' };
+      paymentFallback = true;
     }
   }
+
+  const finalMethod = paymentFallback ? 'CASH' : data.paymentMethod;
+  void sendMail(
+    order.customerEmail ?? user.email,
+    `Pedido ${number} recebido`,
+    orderConfirmationHtml(number, eur(totalCents), paymentMethodLabel(finalMethod)),
+    `Pedido ${number} recebido. Total: ${eur(totalCents)}. Pagamento: ${paymentMethodLabel(finalMethod)}.`,
+  );
 
   const orderView = await getForUser(number, user.id);
   const res = NextResponse.json({
@@ -168,6 +176,7 @@ export async function POST(req: Request) {
       paymentMeta: orderView!.paymentMeta,
     },
     payment,
+    paymentFallback,
   });
   return res;
 }

@@ -1,12 +1,18 @@
 /* Service Worker — Trem Food
- * Estratégia: network-first para navegações e API, stale-while-revalidate
+ * Estratégia: network-first para navegações públicas, stale-while-revalidate
  * para imagens e fontes. Atualização automática via skipWaiting.
+ * Atenção: JavaScript puro (o browser carrega este ficheiro tal como está).
  */
-const VERSION = 'trem-v2';
+const VERSION = 'trem-v3';
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
 const SHELL = ['/', '/cardapio', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+
+// Só páginas públicas vão para a cache: conta, pedidos, checkout e painel têm
+// dados pessoais e não podem ficar guardados no dispositivo.
+const PUBLIC_PAGES = [/^\/$/, /^\/cardapio(\/[^/]+)?$/, /^\/rastreamento$/, /^\/offline$/, /^\/(privacidade|termos|cookies)$/];
+const isPublicPage = (pathname) => PUBLIC_PAGES.some((re) => re.test(pathname));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -30,12 +36,13 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
 
   // Nunca armazenar em cache chamadas à API nem o service worker.
   if (url.pathname.startsWith('/api/') || url.pathname === '/sw.js') return;
 
   // Imagens e fontes: stale-while-revalidate
-  const isAsset = url.pathname.startsWith('/img/') || url.pathname.startsWith('/fonts/') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.webp') || url.pathname.endsWith('.woff2');
+  const isAsset = url.pathname.startsWith('/img/') || url.pathname.startsWith('/fonts/') || /\.(png|jpe?g|webp|woff2)$/.test(url.pathname);
 
   if (isAsset) {
     event.respondWith(
@@ -57,21 +64,22 @@ self.addEventListener('fetch', (event) => {
 
   // Navegações: network-first com fallback offline para o shell
   if (req.mode === 'navigate') {
+    const cacheable = isPublicPage(url.pathname);
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
+          if (cacheable && res.ok) {
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() =>
-          caches
-            .match(req)
+          (cacheable ? caches.match(req) : Promise.resolve(undefined))
             .then((r) => r || caches.match('/offline'))
             .then((r) => r || caches.match('/')),
         ),
     );
-    return;
   }
 });
 
@@ -83,35 +91,31 @@ self.addEventListener('push', (event) => {
   } catch {
     /* payload não-JSON — notificação genérica */
   }
-  const d = data as { title?: string; body?: string; url?: string; tag?: string };
   event.waitUntil(
-    self.registration.showNotification(d.title || 'Trem Food', {
-      body: d.body || '',
+    self.registration.showNotification(data.title || 'Trem Food', {
+      body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      tag: d.tag,
-      data: { url: d.url || '/' },
+      tag: data.tag,
+      data: { url: data.url || '/' },
     }),
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data as { url?: string } | undefined)?.url || '/';
+  // Só caminhos do próprio site (nunca um URL externo vindo do payload).
+  const raw = (event.notification.data && event.notification.data.url) || '/';
+  const url = typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
-        if ('focus' in client && !('navigate' in client)) {
-          client.focus();
-          return;
-        }
         if ('navigate' in client) {
-          client.navigate(url);
-          client.focus();
-          return;
+          return client.navigate(url).then((c) => (c || client).focus());
         }
+        if ('focus' in client) return client.focus();
       }
-      return clients.openWindow(url);
+      return self.clients.openWindow(url);
     }),
   );
 });

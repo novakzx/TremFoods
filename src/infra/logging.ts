@@ -1,4 +1,5 @@
 import { prisma } from '@/infra/db';
+import { clientIp } from '@/infra/throttle';
 
 // Log estruturado JSON (stdout) — pronto para agregadores (Vercel, Datadog, Loki…).
 export function log(level: 'info' | 'warn' | 'error', msg: string, meta: Record<string, unknown> = {}) {
@@ -18,7 +19,7 @@ export function requestId(req?: Request) {
 }
 
 export async function audit(action: string, req: Request | null, actorId?: string | null, actorEmail?: string | null, meta: Record<string, unknown> = {}) {
-  const ip = req?.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+  const ip = req ? clientIp(req) : null;
   try {
     await prisma.auditLog.create({
       data: { action, actorId: actorId ?? null, actorEmail: actorEmail ?? null, ip, meta: meta as object },

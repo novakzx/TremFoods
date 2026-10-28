@@ -1,16 +1,61 @@
 import { prisma } from '@/infra/db';
-import { safeAdvanceStatus } from '@/domains/orders/order-status';
-import { statusLabel } from '@/domains/orders/order-status';
+import { safeAdvanceStatus, statusLabel, LIFECYCLE } from '@/domains/orders/order-status';
 import { notifyOrderStatus } from '@/domains/notifications/push-server';
 
 // Lista de trabalho do balcão: até 100 pedidos recentes, com filtro opcional por estado.
 export function listOrders(status?: string) {
   return prisma.order.findMany({
-    where: status ? { status } : undefined,
+    where: status && LIFECYCLE[status] ? { status } : undefined,
     orderBy: { createdAt: 'desc' as const },
     take: 100,
     include: { items: true, user: { select: { email: true } } },
   });
+}
+
+type ListedOrder = Awaited<ReturnType<typeof listOrders>>[number];
+
+export type AdminOrderView = {
+  id: string;
+  number: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  deliveryMethod: 'DELIVERY' | 'PICKUP';
+  totalCents: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  note: string | null;
+  addressLine: string;
+  items: { name: string; qty: number; options: string[] }[];
+  createdAt: string;
+};
+
+// Formato único para o painel (render inicial e atualização periódica).
+export function toAdminOrderView(o: ListedOrder): AdminOrderView {
+  return {
+    id: o.id,
+    number: o.number,
+    status: o.status,
+    paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    deliveryMethod: o.deliveryMethod as 'DELIVERY' | 'PICKUP',
+    totalCents: o.totalCents,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    customerEmail: o.customerEmail ?? o.user.email,
+    note: o.note,
+    addressLine:
+      o.deliveryMethod === 'DELIVERY'
+        ? [o.addressStreet, o.addressNumber, o.addressCity, o.addressPostal].filter(Boolean).join(', ')
+        : 'Levantamento no balcão',
+    items: o.items.map((i) => ({
+      name: i.nameSnapshot,
+      qty: i.qty,
+      options: Array.isArray(i.optionsJson) ? (i.optionsJson as { name: string }[]).map((x) => x.name) : [],
+    })),
+    createdAt: o.createdAt.toISOString(),
+  };
 }
 
 export async function moveOrderStatus(orderId: string, next: string) {
